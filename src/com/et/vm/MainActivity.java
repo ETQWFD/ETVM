@@ -71,7 +71,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /**
- * ET虚拟机 v3.1.1 · 原生 Java 版（完全无 WebView）
+ * ET虚拟机 v3.2.0 · 原生 Java 版（完全无 WebView）
  * 内置 ET-OS 7.0 精简系统（32 位，不可删除）· ROM 商店 · 连接储存 · 签名防注入 · 设备授权码
  * 三语言（中/英/日）· 多主题 · 检查更新（软件内下载并安装）· 崩溃兜底 · 界面缓存秒开
  * ET协会出品 · © ET
@@ -80,7 +80,7 @@ public class MainActivity extends Activity {
 
     /* 签名防注入：本应用真实签名哈希（构建后回填，见 build.sh 两遍打包） */
     static final String EXPECTED_SIG = "4a7eee440f0a87274aff7ddbf690d9c8f5422826e71b0234a18727c0950d6a6b";
-    static final String APP_VER = "3.1.1";
+    static final String APP_VER = "3.2.0";
     static final String REPO = "ETQWFD/ETVM";
 
     /* 配色（随主题切换，非 final） */
@@ -219,6 +219,8 @@ public class MainActivity extends Activity {
     private JSONArray catalog = new JSONArray();
     private final Map<String, JSONObject> romDls = new java.util.HashMap<>();
     private final Map<String, Integer> dlTimers = new java.util.HashMap<>();
+    /* 自研下载器进度：id -> {bytes,total,done,failed,file,path,speed} */
+    private final Map<String, JSONObject> romProg = new java.util.HashMap<>();
     private JSONArray importCache = new JSONArray();
 
     private String filesTab = "vm";
@@ -232,6 +234,7 @@ public class MainActivity extends Activity {
     private LinearLayout vmAppGrid, bootLinesBox, filesList, romList, storeList, homeVmList;
     private EditText vmNameEdit, vmCustomVerEdit, vmVersionEdit;
     private List<Button> bitsBtns = new ArrayList<>(), verBtns = new ArrayList<>(), modelBtns = new ArrayList<>();
+    private List<Button> builtinBtns = new ArrayList<>();
     private TextView fpsVal, animHint;
     private SeekBar fpsBar;
     private CheckBox optGapps, optXposed, optRoot;
@@ -435,30 +438,35 @@ public class MainActivity extends Activity {
     }
 
     private void extractBundled() {
+        /* 解包全部随包内置系统（安卓4.4 / ET-OS 7.0），后台线程执行 */
+        String[] names = {"etos-4.4-x86.zip", "etos-7.0-x86.zip"};
         File dir = new File(getExternalFilesDir(null), "roms");
-        File zip = new File(dir, "etos-7.0-x86.zip");
-        if (zip.exists()) return;
-        try {
-            if (!dir.exists()) dir.mkdirs();
-            InputStream in = getAssets().open("etos/etos-7.0-x86.zip");
-            OutputStream out = new FileOutputStream(zip);
-            byte[] buf = new byte[65536];
-            int n;
-            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-            in.close(); out.close();
-            /* 解出壁纸 */
-            try (ZipFile zf = new ZipFile(zip)) {
-                ZipEntry we = zf.getEntry("wallpaper.png");
-                if (we != null) {
-                    InputStream wi = zf.getInputStream(we);
-                    OutputStream wo = new FileOutputStream(new File(dir, "wallpaper.png"));
-                    byte[] wb = new byte[65536];
-                    int w;
-                    while ((w = wi.read(wb)) > 0) wo.write(wb, 0, w);
-                    wi.close(); wo.close();
+        if (!dir.exists()) dir.mkdirs();
+        for (String nm : names) {
+            File zip = new File(dir, nm);
+            if (zip.exists()) continue;
+            try {
+                InputStream in = getAssets().open("etos/" + nm);
+                OutputStream out = new FileOutputStream(zip);
+                byte[] buf = new byte[65536];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                in.close(); out.close();
+                /* 解出壁纸 */
+                try (ZipFile zf = new ZipFile(zip)) {
+                    ZipEntry we = zf.getEntry("wallpaper.png");
+                    if (we != null) {
+                        String wname = nm.startsWith("etos-4.4") ? "wallpaper44.png" : "wallpaper.png";
+                        InputStream wi = zf.getInputStream(we);
+                        OutputStream wo = new FileOutputStream(new File(dir, wname));
+                        byte[] wb = new byte[65536];
+                        int w;
+                        while ((w = wi.read(wb)) > 0) wo.write(wb, 0, w);
+                        wi.close(); wo.close();
+                    }
                 }
-            }
-        } catch (Exception ignored) {}
+            } catch (Exception ignored) {}
+        }
     }
 
     private String bundledZipPath() {
@@ -695,7 +703,7 @@ public class MainActivity extends Activity {
             try {
                 final JSONObject vm = vms.getJSONObject(i);
                 final int fi = i;
-                final boolean builtin = vm.optBoolean("builtin", false);
+                final boolean builtin = vm.optBoolean("builtin", false) || vm.optBoolean("bundled", false);
                 String nm = vm.optString("name", "?");
                 LinearLayout c = card();
                 c.setPadding(dp(14), dp(12), dp(14), dp(12));
@@ -737,8 +745,9 @@ public class MainActivity extends Activity {
 
     private void removeVm(int idx) {
         try {
-            if (vms.getJSONObject(idx).optBoolean("bundled", false) && vms.getJSONObject(idx).optInt("id") == 1) {
-                toast("内置 ET-OS 7.0 系统不可删除");
+            JSONObject v = vms.getJSONObject(idx);
+            if (v.optBoolean("bundled", false) || v.optBoolean("builtin", false)) {
+                toast("内置系统不可删除");
                 return;
             }
             vms.remove(idx);
@@ -828,6 +837,10 @@ public class MainActivity extends Activity {
         p.addView(text("机型模板", 13, SUB, 1));
         modelBtns = seg(p, new String[]{"通用机型", "游戏机型", "办公机型"}, 0, idx -> {});
 
+        p.addView(text("系统来源", 13, SUB, 1));
+        builtinBtns = seg(p, new String[]{"内置安卓4.4", "内置安卓7.0", "上传 / 商店"}, 0, idx -> {});
+        p.addView(subText("内置系统已随包安装好、无需下载，选择后创建虚拟机即可直接进入系统。"));
+
         Button next = btnPrimary("下一步", v -> wizardNext());
         p.addView(next, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
         ((LinearLayout.LayoutParams) next.getLayoutParams()).topMargin = dp(18);
@@ -855,6 +868,17 @@ public class MainActivity extends Activity {
         br.addView(prev, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         br.addView(romNextBtn, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         p.addView(br);
+
+        /* 已选内置系统：直接显示内置信息并放行 */
+        JSONObject brom = wizard.optJSONObject("rom");
+        if (brom != null && brom.optBoolean("bundled", false)) {
+            detectCard.setText("✓ 已选内置系统：\n" + brom.optString("name", "") + "（" + brom.optString("bits", "32") + " 位）\n已随包安装好，无需下载，创建后直接进入系统。");
+            detectCard.setTextColor(OK);
+            detectCard.setBackground(round(CARD2, 14));
+            detectCard.setPadding(dp(14), dp(12), dp(14), dp(12));
+            detectCard.setVisibility(View.VISIBLE);
+            if (romNextBtn != null) romNextBtn.setEnabled(true);
+        }
 
         /* ===== 第 3 步 ===== */
         p.addView(text("授权所需权限", 13, SUB, 1));
@@ -936,9 +960,34 @@ public class MainActivity extends Activity {
                         : verBtns.get(vi).getText().toString();
                 wizard.put("ver", ver);
                 wizard.put("model", modelBtns.get(selIndex(modelBtns)).getText().toString());
+                /* 系统来源：内置安卓4.4 / 内置安卓7.0 / 上传商店 */
+                int bi2 = builtinBtns == null || builtinBtns.isEmpty() ? 0 : selIndex(builtinBtns);
+                if (bi2 == 0) {
+                    JSONObject rom = new JSONObject();
+                    rom.put("name", "内置 Android 4.4 KitKat");
+                    rom.put("bits", "32");
+                    rom.put("bundled", true);
+                    rom.put("file", "etos-4.4-x86.zip");
+                    rom.put("size", 0);
+                    wizard.put("rom", rom);
+                    wizard.put("bits", "32");
+                } else if (bi2 == 1) {
+                    JSONObject rom = new JSONObject();
+                    rom.put("name", "内置 ET-OS 7.0");
+                    rom.put("bits", "32");
+                    rom.put("bundled", true);
+                    rom.put("file", "etos-7.0-x86.zip");
+                    rom.put("size", 0);
+                    wizard.put("rom", rom);
+                    wizard.put("bits", "32");
+                } else {
+                    wizard.remove("rom");
+                }
                 wizardStep = 2;
             } else if (wizardStep == 2) {
-                if (romRes == null || !romRes.optBoolean("ok", false)) { toast("请先上传并检测通过 ROM"); return; }
+                JSONObject brom = wizard.optJSONObject("rom");
+                boolean bIn = brom != null && brom.optBoolean("bundled", false);
+                if (!bIn && (romRes == null || !romRes.optBoolean("ok", false))) { toast("请选择内置系统，或上传并检测通过 ROM"); return; }
                 wizardStep = 3;
             } else if (wizardStep == 3) {
                 if (!(perms.get("storage") == Boolean.TRUE && perms.get("overlay") == Boolean.TRUE && perms.get("install") == Boolean.TRUE)) {
@@ -1098,7 +1147,9 @@ public class MainActivity extends Activity {
 
     private void createVm() {
         try {
-            if (romRes == null) { toast("缺少 ROM"); return; }
+            JSONObject brom = wizard.optJSONObject("rom");
+            boolean bIn = brom != null && brom.optBoolean("bundled", false);
+            if (!bIn && romRes == null) { toast("缺少 ROM"); return; }
             JSONObject vm = new JSONObject();
             vm.put("id", System.currentTimeMillis());
             vm.put("name", wizard.optString("name", "我的安卓机"));
@@ -1106,24 +1157,34 @@ public class MainActivity extends Activity {
             vm.put("ver", wizard.optString("ver", "Android 13.0"));
             vm.put("model", wizard.optString("model", "通用机型"));
             JSONObject rom = new JSONObject();
-            rom.put("name", romRes.optString("name", ""));
-            rom.put("size", romRes.optLong("size", 0));
-            rom.put("bits", romRes.optString("bits", "unknown"));
-            rom.put("path", romRes.optString("path", ""));
+            if (bIn) {
+                rom.put("name", brom.optString("name", "内置系统"));
+                rom.put("size", 0);
+                rom.put("bits", brom.optString("bits", "32"));
+                rom.put("bundled", true);
+                rom.put("file", brom.optString("file", ""));
+                vm.put("bundled", true);
+            } else {
+                rom.put("name", romRes.optString("name", ""));
+                rom.put("size", romRes.optLong("size", 0));
+                rom.put("bits", romRes.optString("bits", "unknown"));
+                rom.put("path", romRes.optString("path", ""));
+            }
             vm.put("rom", rom);
-            vm.put("version", "ET-OS 14.0 (2026.09)");
+            vm.put("version", "ET-OS " + wizard.optString("ver", "14.0") + " (2026.09)");
             vm.put("fps", 60);
             vm.put("anim", "ET 经典");
             vm.put("animPath", "");
             vm.put("gapps", false);
             vm.put("xposed", false);
             vm.put("root", false);
-            vm.put("firstBoot", true);
+            /* 内置系统已安装好：创建即用（非首次启动） */
+            vm.put("firstBoot", !bIn);
             vm.put("installed", new JSONArray());
             vm.put("created", System.currentTimeMillis());
             vms.put(vm);
             saveVms();
-            toast("虚拟机「" + vm.optString("name") + "」创建成功");
+            toast("虚拟机「" + vm.optString("name") + "」创建成功" + (bIn ? "，内置系统可直接启动" : ""));
             show(1);
         } catch (Exception ignored) {}
     }
@@ -1908,7 +1969,7 @@ public class MainActivity extends Activity {
         tt.setOrientation(LinearLayout.VERTICAL);
         tt.setPadding(dp(12), 0, 0, 0);
         tt.addView(text("ROM 商店", 19, TXT, 1));
-        tt.addView(subText("官方精简系统镜像 · 单包 ≤400MB"));
+        tt.addView(subText("Android 4.4 → 16 全系 · 32/64 位 · 2 款随包内置系统"));
         top.addView(tt);
         Button ref = btn("刷新列表", 0xFF182442, v -> { toast("正在刷新列表…"); show(7); });
         ref.setTextSize(11);
@@ -1929,13 +1990,21 @@ public class MainActivity extends Activity {
         loadCatalog();
         try {
             JSONObject dls = new JSONObject(sp.getString("romDls", "{}"));
+            int dlCount = 0, builtinCount = 0;
             for (int i = 0; i < catalog.length(); i++) {
                 final JSONObject r = catalog.getJSONObject(i);
                 final String id = r.optString("id", "");
+                final boolean bundled = r.optBoolean("bundled", false);
+                final boolean coming = r.optBoolean("coming", false);
                 boolean dl = dls.has(id);
+                if (bundled) builtinCount++;
+                if (dl) dlCount++;
+                JSONObject prog = romProg.get(id);
+                boolean downloading = prog != null && !prog.optBoolean("done", false) && !prog.optBoolean("failed", false);
+
                 LinearLayout c = card();
                 LinearLayout head = rowWrap();
-                TextView t = tile(r.optString("name", "?").substring(0, 1), BLUE);
+                TextView t = tile(r.optString("name", "?").substring(0, 1), bundled ? GREEN : (coming ? 0xFF8A97AD : BLUE));
                 head.addView(t, new LinearLayout.LayoutParams(dp(44), dp(44)));
                 LinearLayout tt = new LinearLayout(this);
                 tt.setOrientation(LinearLayout.VERTICAL);
@@ -1944,21 +2013,58 @@ public class MainActivity extends Activity {
                 tt.addView(subText(r.optString("desc", "")));
                 head.addView(tt);
                 c.addView(head);
+
                 LinearLayout tags = rowWrap();
                 tags.setPadding(0, dp(10), 0, 0);
                 tags.addView(tag(r.optString("ver", ""), 0xFF7FB3FF));
                 tags.addView(tag(r.optString("bits", "") + " 位", ACCENT));
                 tags.addView(tag(r.optString("sizeMb", "") + " MB", OK));
-                tags.addView(tag(dl ? "已下载" : "未下载", dl ? OK : 0xFF8A97AD));
+                if (bundled) tags.addView(tag("已内置 · 无需下载", GREEN));
+                else if (coming) tags.addView(tag("镜像整理中", 0xFF8A97AD));
+                else if (downloading) tags.addView(tag("下载中", WARN));
+                else tags.addView(tag(dl ? "已下载 ✓" : "未下载", dl ? OK : 0xFF8A97AD));
                 c.addView(tags);
+
+                /* 下载中：实时进度条 + 百分比 + 速度 */
+                if (downloading && prog != null) {
+                    long bytes = prog.optLong("bytes", 0), total = prog.optLong("total", 0);
+                    int pct = total > 0 ? (int) (bytes * 100 / total) : 0;
+                    ProgressBar pb = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+                    pb.setMax(100);
+                    pb.setProgress(pct);
+                    pb.setPadding(0, dp(4), 0, dp(4));
+                    c.addView(pb);
+                    StringBuilder st = new StringBuilder();
+                    st.append("已下载 ").append(fmtSize(bytes));
+                    if (total > 0) st.append(" / ").append(fmtSize(total)).append(" (").append(pct).append("%)");
+                    else st.append("（获取大小中…）");
+                    long speed = prog.optLong("speed", 0);
+                    if (speed > 0) st.append(" · ").append(fmtSize(speed)).append("/s");
+                    c.addView(subText(st.toString()));
+                } else if (coming) {
+                    c.addView(subText("该版本为社区 x86_64 大镜像（>1GB），正在整理上架，可先用内置系统或 4~9 官方镜像。"));
+                }
+
                 LinearLayout acts = rowWrap();
                 acts.setPadding(0, dp(12), 0, 0);
-                if (dl) {
+                if (bundled) {
+                    Button use = btnPrimary("使用此内置系统", v -> useRom(id));
+                    acts.addView(use, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                } else if (coming) {
+                    Button wait = btn("镜像整理中", 0xFF182442, v -> toast("Android 10+ 大镜像整理中，先用 4~9 官方版或内置系统"));
+                    acts.addView(wait, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                } else if (dl) {
                     Button use = btnPrimary("使用此 ROM", v -> useRom(id));
                     acts.addView(use, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                    Button dbtn = btn("重新下载", 0xFF182442, v -> downloadRom(id));
+                    acts.addView(dbtn, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                } else if (downloading) {
+                    Button dbtn = btn("下载中…", 0xFF182442, v -> toast("下载进行中，请耐心等待"));
+                    acts.addView(dbtn, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                } else {
+                    Button dbtn = btnPrimary("下载 ROM", v -> downloadRom(id));
+                    acts.addView(dbtn, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
                 }
-                Button dbtn = btn(dl ? "重新下载" : "下载 ROM", 0xFF182442, v -> downloadRom(id));
-                acts.addView(dbtn, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
                 c.addView(acts);
                 romList.addView(c);
             }
@@ -1986,78 +2092,128 @@ public class MainActivity extends Activity {
         } catch (Exception e) { catalog = new JSONArray(); }
     }
 
-    private void downloadRom(final String id) {
-        try {
-            JSONObject r = null;
-            for (int i = 0; i < catalog.length(); i++) if (id.equals(catalog.getJSONObject(i).optString("id", ""))) r = catalog.getJSONObject(i);
-            if (r == null) return;
-            final JSONObject fr = r;
-            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-            DownloadManager.Request req = new DownloadManager.Request(Uri.parse(fr.optString("url", "")));
-            req.setDestinationInExternalFilesDir(this, "uploads/rom", fr.optString("file", "rom.iso"));
-            req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            req.setTitle("ET虚拟机 · ROM 下载");
-            req.setDescription(fr.optString("name", ""));
-            final long dlId = dm.enqueue(req);
-            toast("已开始下载「" + fr.optString("name", "") + "」");
-            h.postDelayed(new Runnable() {
-                @Override public void run() {
-                    JSONObject info = getDownloadInfo(String.valueOf(dlId));
-                    if (info.optBoolean("done", false)) {
-                        try {
-                            JSONObject dls = new JSONObject(sp.getString("romDls", "{}"));
-                            JSONObject e = new JSONObject();
-                            e.put("file", fr.optString("file", ""));
-                            e.put("path", info.optString("path", ""));
-                            dls.put(id, e);
-                            sp.edit().putString("romDls", dls.toString()).apply();
-                            toast("「" + fr.optString("name", "") + "」下载完成");
-                            show(7);
-                        } catch (Exception ignored) {}
-                    } else if (info.optBoolean("failed", false)) {
-                        toast("下载失败，请重试");
-                        show(7);
-                    } else {
-                        h.postDelayed(this, 1200);
-                    }
-                }
-            }, 1200);
-        } catch (Exception e) {
-            toast("下载启动失败，请检查网络");
+    private JSONObject findRom(String id) {
+        for (int i = 0; i < catalog.length(); i++) {
+            try { if (id.equals(catalog.getJSONObject(i).optString("id", ""))) return catalog.getJSONObject(i); } catch (Exception ignored) {}
         }
+        return null;
     }
 
-    private JSONObject getDownloadInfo(String idStr) {
-        JSONObject o = new JSONObject();
+    /* ===== 自研下载器：真实流式下载 + 实时进度（百分比/速度） ===== */
+    private void downloadRom(final String id) {
+        final JSONObject r = findRom(id);
+        if (r == null) return;
+        if (r.optBoolean("coming", false)) { toast("该版本镜像整理中，先用内置系统或 4~9 官方镜像"); return; }
+        if (r.optBoolean("bundled", false)) { toast("内置系统无需下载，可直接使用"); return; }
+        final JSONObject fr = r;
+        final JSONObject p = new JSONObject();
         try {
-            long id = Long.parseLong(idStr);
-            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-            DownloadManager.Query q = new DownloadManager.Query();
-            q.setFilterById(id);
-            Cursor c = dm.query(q);
-            if (c != null && c.moveToFirst()) {
-                int status = c.getInt(c.getColumnIndex(DownloadManager.COLUMN_STATUS));
-                long bytes = c.getLong(c.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
-                long total = c.getLong(c.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
-                String uri = c.getString(c.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI));
-                c.close();
-                o.put("bytes", bytes);
-                o.put("total", total);
-                o.put("path", uri == null ? "" : uri.replace("file://", ""));
-                o.put("done", status == DownloadManager.STATUS_SUCCESSFUL);
-                o.put("failed", status == DownloadManager.STATUS_FAILED);
-            }
+            p.put("bytes", 0L); p.put("total", 0L); p.put("done", false); p.put("failed", false);
+            p.put("file", fr.optString("file", "rom.iso")); p.put("speed", 0L);
         } catch (Exception ignored) {}
-        return o;
+        romProg.put(id, p);
+        h.post(() -> renderRomStore());
+        new Thread(() -> {
+            InputStream in = null;
+            OutputStream out = null;
+            try {
+                URL u = new URL(fr.optString("url", ""));
+                HttpURLConnection c = (HttpURLConnection) u.openConnection();
+                c.setConnectTimeout(15000);
+                c.setReadTimeout(30000);
+                c.setRequestProperty("User-Agent", "Mozilla/5.0 (ETVM/" + APP_VER + "; Android)");
+                int code = c.getResponseCode();
+                String loc = c.getHeaderField("Location");
+                int hops = 0;
+                while ((code == 301 || code == 302 || code == 303 || code == 307 || code == 308) && loc != null && hops < 10) {
+                    c.disconnect();
+                    u = new URL(new URL(fr.optString("url", "")), loc);
+                    c = (HttpURLConnection) u.openConnection();
+                    c.setConnectTimeout(15000);
+                    c.setReadTimeout(30000);
+                    c.setRequestProperty("User-Agent", "Mozilla/5.0 (ETVM/" + APP_VER + "; Android)");
+                    code = c.getResponseCode();
+                    loc = c.getHeaderField("Location");
+                    hops++;
+                }
+                if (code != 200) {
+                    final int fCode = code;
+                    p.put("failed", true);
+                    h.post(() -> { toast("下载失败：HTTP " + fCode + "（镜像源不可达，稍后重试）"); renderRomStore(); });
+                    return;
+                }
+                long total = c.getContentLengthLong();
+                p.put("total", total);
+                File dir = new File(getExternalFilesDir(null), "uploads/rom");
+                if (!dir.exists()) dir.mkdirs();
+                File tmp = new File(dir, fr.optString("file", "rom.iso") + ".part");
+                in = c.getInputStream();
+                out = new FileOutputStream(tmp);
+                byte[] buf = new byte[65536];
+                long got = 0, st = System.currentTimeMillis();
+                int n;
+                while ((n = in.read(buf)) > 0) {
+                    out.write(buf, 0, n);
+                    got += n;
+                    long now = System.currentTimeMillis();
+                    if (now - st > 700) {
+                        final long fGot = got;
+                        p.put("bytes", fGot);
+                        p.put("total", total);
+                        p.put("speed", (long) (fGot * 1000.0 / Math.max(1, now - st)));
+                        h.post(() -> renderRomStore());
+                        st = now;
+                    }
+                }
+                out.flush(); out.close(); in.close();
+                File fin = new File(dir, fr.optString("file", "rom.iso"));
+                if (tmp.exists()) tmp.renameTo(fin);
+                p.put("done", true);
+                p.put("path", fin.getAbsolutePath());
+                JSONObject dls = new JSONObject(sp.getString("romDls", "{}"));
+                JSONObject e = new JSONObject();
+                e.put("file", fr.optString("file", ""));
+                e.put("path", fin.getAbsolutePath());
+                dls.put(id, e);
+                sp.edit().putString("romDls", dls.toString()).apply();
+                h.post(() -> {
+                    toast("「" + fr.optString("name", "") + "」下载完成");
+                    renderRomStore();
+                });
+            } catch (Exception ex) {
+                try { p.put("failed", true); } catch (Exception ignored) {}
+                final String msg = ex.getMessage() == null ? "未知错误" : ex.getMessage();
+                h.post(() -> { toast("下载失败：" + msg); renderRomStore(); });
+            } finally {
+                try { if (in != null) in.close(); } catch (Exception ignored) {}
+                try { if (out != null) out.close(); } catch (Exception ignored) {}
+            }
+        }).start();
     }
 
     private void useRom(String id) {
         try {
+            JSONObject r = findRom(id);
+            if (r == null) return;
+            /* 内置系统：直接选用 */
+            if (r.optBoolean("bundled", false)) {
+                openWizard();
+                JSONObject brom = new JSONObject();
+                brom.put("name", r.optString("name", "内置系统"));
+                brom.put("bits", r.optString("bits", "32"));
+                brom.put("bundled", true);
+                brom.put("file", r.optString("file", ""));
+                brom.put("size", 0);
+                wizard.put("rom", brom);
+                wizard.put("bits", r.optString("bits", "32"));
+                wizard.put("ver", r.optString("ver", "Android 4.4"));
+                wizardStep = 2;
+                show(2);
+                return;
+            }
             JSONObject dls = new JSONObject(sp.getString("romDls", "{}"));
             JSONObject e = dls.optJSONObject(id);
-            JSONObject r = null;
-            for (int i = 0; i < catalog.length(); i++) if (id.equals(catalog.getJSONObject(i).optString("id", ""))) r = catalog.getJSONObject(i);
-            if (e == null || r == null || e.optString("path", "").isEmpty()) { toast("ROM 尚未下载完成"); return; }
+            if (e == null || e.optString("path", "").isEmpty()) { toast("ROM 尚未下载完成"); return; }
             openWizard();
             wizard.put("bits", r.optString("bits", "32"));
             wizardStep = 2;

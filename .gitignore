@@ -10,3 +10,4 @@ keystore/
 *.apk
 *.idsig
 *.keystore
+tools/

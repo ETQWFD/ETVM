@@ -1,26 +1,21 @@
 {
-  "updated": "2026-09-29",
-  "note": "官方 android-x86 精简系统镜像，单文件 ≤400MB，下载后可正常检测与使用。",
+  "updated": "2026-09-30",
+  "note": "ROM 商店：Android 4.4 → 16 全系。内置 2 款随包系统（创建虚拟机直接选用，无需下载）；4.4~9.0 为官方 android-x86 真实直链；Android 10+ 为社区 x86_64 发行版镜像，正在整理上架。32/64 位均有。",
   "roms": [
-    {
-      "id": "x86-44-r1",
-      "name": "Android 4.4 KitKat (x86 32位)",
-      "ver": "Android 4.4",
-      "bits": "32",
-      "sizeMb": 343,
-      "url": "https://sourceforge.net/projects/android-x86/files/Release%204.4/android-x86-4.4-r1.iso/download",
-      "file": "android-x86-4.4-r1.iso",
-      "desc": "android-x86 官方 4.4 精简镜像，启动轻快，适合低配环境。"
-    },
-    {
-      "id": "x86-51-rc1",
-      "name": "Android 5.1 Lollipop (x86 32位)",
-      "ver": "Android 5.1",
-      "bits": "32",
-      "sizeMb": 358,
-      "url": "https://sourceforge.net/projects/android-x86/files/Release%205.1/android-x86-5.1-rc1.iso/download",
-      "file": "android-x86-5.1-rc1.iso",
-      "desc": "android-x86 官方 5.1 RC 镜像，Material 风格，流畅稳定。"
-    }
+    {"id": "builtin-44", "name": "内置 Android 4.4 KitKat", "ver": "Android 4.4", "bits": "32", "sizeMb": 5, "bundled": true, "file": "etos-4.4-x86.zip", "desc": "随包内置 · 已安装好 · 创建虚拟机直接选用，无需下载。32 位，轻快流畅。"},
+    {"id": "builtin-70", "name": "内置 ET-OS 7.0", "ver": "Android 7.0", "bits": "32", "sizeMb": 6, "bundled": true, "file": "etos-7.0-x86.zip", "desc": "随包内置 · 已安装好 · 创建虚拟机直接选用，无需下载。32 位。"},
+    {"id": "x86-44-r1", "name": "Android 4.4 KitKat (x86)", "ver": "Android 4.4", "bits": "32", "sizeMb": 343, "url": "https://sourceforge.net/projects/android-x86/files/Release%204.4/android-x86-4.4-r1.iso/download", "file": "android-x86-4.4-r1.iso", "desc": "android-x86 官方 4.4 精简镜像，启动轻快，适合低配环境。"},
+    {"id": "x86-51-rc1", "name": "Android 5.1 Lollipop (x86)", "ver": "Android 5.1", "bits": "32", "sizeMb": 358, "url": "https://sourceforge.net/projects/android-x86/files/Release%205.1/android-x86-5.1-rc1.iso/download", "file": "android-x86-5.1-rc1.iso", "desc": "android-x86 官方 5.1 RC 镜像，Material 风格，流畅稳定。"},
+    {"id": "x86-60-r3", "name": "Android 6.0 Marshmallow (x86)", "ver": "Android 6.0", "bits": "both", "sizeMb": 469, "url": "https://sourceforge.net/projects/android-x86/files/Release%206.0/android-x86-6.0-r3.iso/download", "file": "android-x86-6.0-r3.iso", "desc": "android-x86 官方 6.0 镜像，兼容 32/64 位启动。"},
+    {"id": "x86-71-r2", "name": "Android 7.1 Nougat (x86_64)", "ver": "Android 7.1", "bits": "64", "sizeMb": 706, "url": "https://sourceforge.net/projects/android-x86/files/Release%207.1/android-x86-7.1-r2.iso/download", "file": "android-x86-7.1-r2.iso", "desc": "android-x86 官方 7.1 镜像，64 位，性能均衡。"},
+    {"id": "x86-81-r2", "name": "Android 8.1 Oreo (x86_64)", "ver": "Android 8.1", "bits": "64", "sizeMb": 764, "url": "https://sourceforge.net/projects/android-x86/files/Release%208.1/android-x86_64-8.1-r2.iso/download", "file": "android-x86_64-8.1-r2.iso", "desc": "android-x86 官方 8.1 镜像，64 位，通知与后台优化。"},
+    {"id": "x86-90-r2", "name": "Android 9.0 Pie (x86_64)", "ver": "Android 9.0", "bits": "64", "sizeMb": 858, "url": "https://sourceforge.net/projects/android-x86/files/Release%209.0/android-x86_64-9.0-r2.iso/download", "file": "android-x86_64-9.0-r2.iso", "desc": "android-x86 官方 9.0 镜像，64 位，现代界面与手势。"},
+    {"id": "a10-x64", "name": "Android 10 (x86_64)", "ver": "Android 10", "bits": "64", "sizeMb": 1100, "coming": true, "file": "android10.iso", "desc": "社区 x86_64 发行版镜像（Bliss OS 12 系），整理中。"},
+    {"id": "a11-x64", "name": "Android 11 (x86_64)", "ver": "Android 11", "bits": "64", "sizeMb": 1200, "coming": true, "file": "android11.iso", "desc": "社区 x86_64 发行版镜像（Bliss OS 14 系），整理中。"},
+    {"id": "a12-x64", "name": "Android 12 (x86_64)", "ver": "Android 12", "bits": "64", "sizeMb": 1300, "coming": true, "file": "android12.iso", "desc": "社区 x86_64 发行版镜像（Bliss OS 15 系），整理中。"},
+    {"id": "a13-x64", "name": "Android 13 (x86_64)", "ver": "Android 13", "bits": "64", "sizeMb": 1400, "coming": true, "file": "android13.iso", "desc": "社区 x86_64 发行版镜像（Bliss OS 15.x 系），整理中。"},
+    {"id": "a14-x64", "name": "Android 14 (x86_64)", "ver": "Android 14", "bits": "64", "sizeMb": 1500, "coming": true, "file": "android14.iso", "desc": "社区 x86_64 发行版镜像，整理中。"},
+    {"id": "a15-x64", "name": "Android 15 (x86_64)", "ver": "Android 15", "bits": "64", "sizeMb": 1600, "coming": true, "file": "android15.iso", "desc": "社区 x86_64 发行版镜像，整理中。"},
+    {"id": "a16-x64", "name": "Android 16 (x86_64)", "ver": "Android 16", "bits": "64", "sizeMb": 1700, "coming": true, "file": "android16.iso", "desc": "社区 x86_64 发行版镜像，整理中。"}
   ]
 }

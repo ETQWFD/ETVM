@@ -29,7 +29,7 @@ public class ETVMPC {
     /* ===== 防注入：本 jar 的 SHA-256（构建后回填，两遍编译） ===== */
     static String selfHash = "";
     static boolean selfOk = true;
-    static final String APP_VER = "3.1.1";
+    static final String APP_VER = "3.2.0";
     static final String REPO = "ETQWFD/ETVM";
 
     /* 配色（随主题切换） */
@@ -387,7 +387,7 @@ public class ETVMPC {
             for (int i = 0; i < vms.length(); i++) {
                 try {
                     JSONObject vm = vms.getJSONObject(i);
-                    boolean bi = vm.optBoolean("builtin", false);
+                    boolean bi = vm.optBoolean("builtin", false) || vm.optBoolean("bundled", false);
                     JPanel c = card();
                     c.setLayout(new BorderLayout(10, 0));
                     c.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(c(LINE)), new EmptyBorder(10, 12, 10, 12)));
@@ -488,14 +488,30 @@ public class ETVMPC {
                         vm.put("id", System.currentTimeMillis());
                         vm.put("name", wNameField == null ? "我的安卓机" : wNameField.getText());
                         vm.put("bits", wizard.optString("bits", "32"));
-                        vm.put("ver", wizard.optBoolean("useBuiltin", true) ? "Android 7.0" : "自定义 ROM");
+                        boolean builtin = wizard.optBoolean("useBuiltin", false);
+                        JSONObject rom = new JSONObject();
+                        if (builtin) {
+                            rom.put("name", wizard.optString("builtinName", "内置系统"));
+                            rom.put("bits", wizard.optString("bits", "32"));
+                            rom.put("bundled", true);
+                            rom.put("size", 0);
+                            vm.put("bundled", true);
+                            vm.put("ver", wizard.optString("builtinVer", "Android 4.4"));
+                        } else {
+                            rom.put("name", wizard.optString("romName", "自定义 ROM"));
+                            rom.put("bits", wizard.optString("bits", "32"));
+                            rom.put("path", wizard.optString("romPath", ""));
+                            rom.put("size", 0);
+                            vm.put("ver", "自定义 ROM");
+                        }
+                        vm.put("rom", rom);
                         vm.put("model", "ET 精简机型");
                         vm.put("version", ver.getText());
                         vm.put("fps", fps.getValue());
                         vm.put("gapps", g.isSelected());
                         vm.put("xposed", x.isSelected());
                         vm.put("root", r.isSelected());
-                        vm.put("firstBoot", false);
+                        vm.put("firstBoot", !builtin);
                         vm.put("created", System.currentTimeMillis());
                         JSONArray inst = new JSONArray();
                         inst.put(new JSONObject().put("label", "连接储存").put("pkg", "com.et.storage").put("abi", "内置 · 共享"));
@@ -856,6 +872,24 @@ public class ETVMPC {
 
     /* ===== ROM 商店 ===== */
     static JSONArray catalog = new JSONArray();
+    static final Map<String, Object[]> storeProg = new HashMap<>(); // id -> {JProgressBar, JLabel}
+    static void initCatalog() {
+        try {
+            if (catalog.length() > 0) return;
+            catalog = new JSONArray();
+            catalog.put(new JSONObject().put("id", "builtin-44").put("name", "内置 Android 4.4 KitKat").put("ver", "Android 4.4").put("bits", "32").put("sizeMb", 5).put("bundled", true).put("file", "etos-4.4-x86.zip").put("desc", "随包内置 · 已安装好 · 创建虚拟机直接选用，无需下载。32 位。"));
+            catalog.put(new JSONObject().put("id", "builtin-70").put("name", "内置 ET-OS 7.0").put("ver", "Android 7.0").put("bits", "32").put("sizeMb", 6).put("bundled", true).put("file", "etos-7.0-x86.zip").put("desc", "随包内置 · 已安装好 · 创建虚拟机直接选用，无需下载。32 位。"));
+            catalog.put(new JSONObject().put("id", "x86-44-r1").put("name", "Android 4.4 KitKat (x86)").put("ver", "Android 4.4").put("bits", "32").put("sizeMb", 343).put("url", "https://sourceforge.net/projects/android-x86/files/Release%204.4/android-x86-4.4-r1.iso/download").put("file", "android-x86-4.4-r1.iso").put("desc", "android-x86 官方 4.4 精简镜像，启动轻快。"));
+            catalog.put(new JSONObject().put("id", "x86-51-rc1").put("name", "Android 5.1 Lollipop (x86)").put("ver", "Android 5.1").put("bits", "32").put("sizeMb", 358).put("url", "https://sourceforge.net/projects/android-x86/files/Release%205.1/android-x86-5.1-rc1.iso/download").put("file", "android-x86-5.1-rc1.iso").put("desc", "android-x86 官方 5.1 RC 镜像，Material 风格。"));
+            catalog.put(new JSONObject().put("id", "x86-60-r3").put("name", "Android 6.0 Marshmallow (x86)").put("ver", "Android 6.0").put("bits", "both").put("sizeMb", 469).put("url", "https://sourceforge.net/projects/android-x86/files/Release%206.0/android-x86-6.0-r3.iso/download").put("file", "android-x86-6.0-r3.iso").put("desc", "android-x86 官方 6.0 镜像，兼容 32/64 位。"));
+            catalog.put(new JSONObject().put("id", "x86-71-r2").put("name", "Android 7.1 Nougat (x86_64)").put("ver", "Android 7.1").put("bits", "64").put("sizeMb", 706).put("url", "https://sourceforge.net/projects/android-x86/files/Release%207.1/android-x86-7.1-r2.iso/download").put("file", "android-x86-7.1-r2.iso").put("desc", "android-x86 官方 7.1 镜像，64 位。"));
+            catalog.put(new JSONObject().put("id", "x86-81-r2").put("name", "Android 8.1 Oreo (x86_64)").put("ver", "Android 8.1").put("bits", "64").put("sizeMb", 764).put("url", "https://sourceforge.net/projects/android-x86/files/Release%208.1/android-x86_64-8.1-r2.iso/download").put("file", "android-x86_64-8.1-r2.iso").put("desc", "android-x86 官方 8.1 镜像，64 位。"));
+            catalog.put(new JSONObject().put("id", "x86-90-r2").put("name", "Android 9.0 Pie (x86_64)").put("ver", "Android 9.0").put("bits", "64").put("sizeMb", 858).put("url", "https://sourceforge.net/projects/android-x86/files/Release%209.0/android-x86_64-9.0-r2.iso/download").put("file", "android-x86_64-9.0-r2.iso").put("desc", "android-x86 官方 9.0 镜像，64 位。"));
+            for (int v = 10; v <= 16; v++) {
+                catalog.put(new JSONObject().put("id", "a" + v + "-x64").put("name", "Android " + v + " (x86_64)").put("ver", "Android " + v).put("bits", "64").put("sizeMb", 1100 + (v - 10) * 100).put("coming", true).put("file", "android" + v + ".iso").put("desc", "社区 x86_64 发行版大镜像，整理上架中。"));
+            }
+        } catch (Exception ignored) {}
+    }
     static JComponent buildStore() {
         JPanel p = panel(BG);
         p.setLayout(new BorderLayout());
@@ -866,6 +900,7 @@ public class ETVMPC {
         back.addActionListener(e -> show("home"));
         hh.add(back); hh.add(lab(S("romTitle"), 20, TXT, true));
         top.add(hh);
+        top.add(lab("Android 4.4 → 16 全系 · 32/64 位 · 2 款随包内置系统", 11, ACCENT, false));
         p.add(top, BorderLayout.NORTH);
         JPanel list = vbox();
         JButton refresh = btn(S("refresh"), 0xFF182442);
@@ -873,63 +908,151 @@ public class ETVMPC {
         top.add(refresh);
         refreshers.put("store", () -> {
             list.removeAll();
-            try {
-                if (catalog.length() == 0) {
-                    catalog = new JSONArray();
-                    catalog.put(new JSONObject().put("id", "kk44").put("name", "Android 4.4 KitKat").put("desc", "android-x86 4.4-r1 · x86 32 位").put("bits", "32").put("sizeMb", 343).put("url", "https://sourceforge.net/projects/android-x86/files/Release%204.4/android-x86-4.4-r1.iso/download").put("file", "android-x86-4.4-r1.iso"));
-                    catalog.put(new JSONObject().put("id", "lp51").put("name", "Android 5.1 Lollipop").put("desc", "android-x86 5.1-rc1 · x86 32 位").put("bits", "32").put("sizeMb", 358).put("url", "https://sourceforge.net/projects/android-x86/files/Release%205.1/android-x86-5.1-rc1.iso/download").put("file", "android-x86-5.1-rc1.iso"));
-                }
-            } catch (Exception ignored) {}
+            initCatalog();
+            int dlN = 0;
             for (int i = 0; i < catalog.length(); i++) {
                 try {
-                    JSONObject r = catalog.getJSONObject(i);
+                    final JSONObject r = catalog.getJSONObject(i);
+                    final String id = r.optString("id", "");
+                    final boolean bundled = r.optBoolean("bundled", false);
+                    final boolean coming = r.optBoolean("coming", false);
+                    File df = new File(romsDir, r.optString("file", "x.iso"));
+                    boolean dl = !bundled && !coming && df.exists();
+                    if (dl) dlN++;
                     JPanel c = card();
                     c.setLayout(new BorderLayout());
                     c.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(c(LINE)), new EmptyBorder(10, 14, 10, 14)));
                     JPanel tt = vbox();
                     tt.add(lab(r.optString("name", ""), 15, TXT, true));
                     tt.add(lab(r.optString("desc", ""), 12, SUB, false));
-                    tt.add(lab(r.optString("bits", "") + " 位 · " + r.optInt("sizeMb", 0) + "MB", 11, OK, false));
+                    String status = bundled ? "已内置 · 无需下载" : coming ? "镜像整理中" : dl ? "已下载 ✓" : "未下载";
+                    int sc = bundled ? OK : coming ? SUB : dl ? OK : 0xFF8A97AD;
+                    tt.add(lab(r.optString("ver", "") + " · " + r.optString("bits", "") + " 位 · " + r.optInt("sizeMb", 0) + " MB · " + status, 11, sc, false));
                     c.add(tt, BorderLayout.CENTER);
-                    JButton dl = btn(S("dl"), BLUE);
-                    dl.addActionListener(e -> downloadRom(r.optString("url", ""), r.optString("file", "rom.iso"), r.optString("name", "")));
-                    c.add(dl, BorderLayout.EAST);
+                    /* 下载中：进度条 */
+                    Object[] prog = storeProg.get(id);
+                    if (prog != null && !((Boolean) prog[2])) {
+                        JPanel pr = vbox();
+                        JProgressBar bar = (JProgressBar) prog[0];
+                        bar.setPreferredSize(new Dimension(180, 16));
+                        bar.setOpaque(false);
+                        pr.add(bar);
+                        pr.add((JLabel) prog[1]);
+                        c.add(pr, BorderLayout.SOUTH);
+                    }
+                    JPanel acts = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+                    acts.setOpaque(false);
+                    if (bundled) {
+                        JButton use = btn("使用此内置系统", BLUE);
+                        use.addActionListener(e -> useBundled(r));
+                        acts.add(use);
+                    } else if (coming) {
+                        JButton w = btn("镜像整理中", 0xFF182442);
+                        w.addActionListener(e -> JOptionPane.showMessageDialog(win, "Android 10+ 大镜像整理中，先用 4~9 官方版或内置系统"));
+                        acts.add(w);
+                    } else if (dl) {
+                        JButton use = btn("使用此 ROM", BLUE);
+                        use.addActionListener(e -> useDownloaded(r));
+                        acts.add(use);
+                        JButton re = btn("重新下载", 0xFF182442);
+                        re.addActionListener(e -> downloadRom(r));
+                        acts.add(re);
+                    } else {
+                        JButton dlb = btn("下载 ROM", BLUE);
+                        dlb.addActionListener(e -> downloadRom(r));
+                        acts.add(dlb);
+                    }
+                    c.add(acts, BorderLayout.EAST);
                     list.add(Box.createVerticalStrut(6));
                     list.add(c);
                 } catch (Exception ignored) {}
             }
-            JPanel b = card();
-            b.setLayout(new BorderLayout());
-            b.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(c(LINE)), new EmptyBorder(10, 14, 10, 14)));
-            b.add(lab("ET-OS 7.0（内置） · 32 位 · 随软件打包", 15, TXT, true), BorderLayout.CENTER);
-            list.add(Box.createVerticalStrut(6));
-            list.add(b);
+            list.add(Box.createVerticalStrut(10));
+            list.add(lab("已下载 " + dlN + " 款官方镜像 · 内置系统随包可用", 11, ACCENT, false));
         });
         p.add(scroller(list), BorderLayout.CENTER);
         return p;
     }
-    static void downloadRom(String url, String file, String name) {
-        final File dst = new File(romsDir, file);
+    static void useBundled(JSONObject r) {
+        wizard = new JSONObject();
+        wizard.put("name", r.optString("name", "我的安卓机"));
+        wizard.put("bits", r.optString("bits", "32"));
+        wizard.put("useBuiltin", true);
+        wizard.put("builtinVer", r.optString("ver", "Android 4.4"));
+        wizard.put("builtinName", r.optString("name", "内置系统"));
+        wStep = 4;
+        show("wizard");
+    }
+    static void useDownloaded(JSONObject r) {
+        wizard = new JSONObject();
+        wizard.put("name", r.optString("name", "我的安卓机"));
+        wizard.put("bits", r.optString("bits", "32"));
+        wizard.put("useBuiltin", false);
+        wizard.put("romPath", new File(romsDir, r.optString("file", "x.iso")).getAbsolutePath());
+        wizard.put("romName", r.optString("name", "自定义 ROM"));
+        wStep = 4;
+        show("wizard");
+    }
+    static void downloadRom(JSONObject r) {
+        final String id = r.optString("id", "");
+        final File dst = new File(romsDir, r.optString("file", "x.iso"));
+        final JProgressBar bar = new JProgressBar(0, 100);
+        final JLabel bl = lab("0%", 11, ACCENT, false);
+        storeProg.put(id, new Object[]{bar, bl, Boolean.FALSE});
+        refreshers.get("store").run();
         new SwingWorker<Void, Integer>() {
             protected Void doInBackground() {
                 try {
-                    HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+                    HttpURLConnection c = (HttpURLConnection) new URL(r.optString("url", "")).openConnection();
                     c.setInstanceFollowRedirects(true);
                     c.setConnectTimeout(12000);
-                    c.connect();
+                    c.setReadTimeout(30000);
+                    int code = c.getResponseCode();
+                    String loc = c.getHeaderField("Location");
+                    int hops = 0;
+                    while ((code == 301 || code == 302 || code == 303 || code == 307 || code == 308) && loc != null && hops < 10) {
+                        c.disconnect();
+                        c = (HttpURLConnection) new URL(new URL(r.optString("url", "")), loc).openConnection();
+                        c.setConnectTimeout(12000); c.setReadTimeout(30000);
+                        c.setRequestProperty("User-Agent", "Mozilla/5.0 (ETVMPC/" + APP_VER + ")");
+                        code = c.getResponseCode(); loc = c.getHeaderField("Location"); hops++;
+                    }
+                    if (code != 200) throw new RuntimeException("HTTP " + code);
                     long total = c.getContentLengthLong();
                     try (InputStream in = c.getInputStream(); OutputStream out = new FileOutputStream(dst)) {
                         byte[] buf = new byte[65536];
-                        long done = 0; int n;
-                        while ((n = in.read(buf)) > 0) { out.write(buf, 0, n); done += n; publish((int) (total > 0 ? done * 100 / total : 0)); }
+                        long done = 0, st = System.currentTimeMillis(); int n;
+                        while ((n = in.read(buf)) > 0) {
+                            out.write(buf, 0, n); done += n;
+                            long now = System.currentTimeMillis();
+                            if (now - st > 700) {
+                                st = now;
+                                int pct = total > 0 ? (int) (done * 100 / total) : 0;
+                                publish(pct, (int) (done / 1024), (int) (total / 1024));
+                            }
+                        }
                     }
                 } catch (Exception ex) {
+                    publish(-1);
                     JOptionPane.showMessageDialog(win, "下载失败：" + ex.getMessage(), "ET虚拟机", JOptionPane.ERROR_MESSAGE);
                 }
                 return null;
             }
+            protected void process(List<Integer> chunks) {
+                int n = chunks.size();
+                Integer last = chunks.get(n - 1);
+                if (last == null || last == -1) { bl.setText("下载失败"); bl.setForeground(c(BAD)); return; }
+                Integer kbT = n >= 3 ? chunks.get(n - 1) : 0;
+                Integer kbD = n >= 2 ? chunks.get(n - 2) : 0;
+                Integer pct = n >= 3 ? chunks.get(n - 3) : last;
+                bar.setValue(pct == null ? 0 : pct);
+                bl.setText((pct == null ? 0 : pct) + "% · " + (kbD == null ? 0 : kbD) + "KB / " + (kbT == null ? 0 : kbT) + "KB");
+                bl.setForeground(c(ACCENT));
+            }
             protected void done() {
-                JOptionPane.showMessageDialog(win, S("dlDone") + dst.getAbsolutePath(), "ET虚拟机", JOptionPane.INFORMATION_MESSAGE);
+                storeProg.remove(id);
+                JOptionPane.showMessageDialog(win, "「" + r.optString("name", "") + "」下载完成 → " + dst.getAbsolutePath(), "ET虚拟机", JOptionPane.INFORMATION_MESSAGE);
+                refreshers.get("store").run();
             }
         }.execute();
     }
