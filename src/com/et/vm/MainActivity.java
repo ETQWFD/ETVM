@@ -30,6 +30,7 @@ import android.util.Base64;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -70,7 +71,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /**
- * ET虚拟机 v3.1.0 · 原生 Java 版（完全无 WebView）
+ * ET虚拟机 v3.1.1 · 原生 Java 版（完全无 WebView）
  * 内置 ET-OS 7.0 精简系统（32 位，不可删除）· ROM 商店 · 连接储存 · 签名防注入 · 设备授权码
  * 三语言（中/英/日）· 多主题 · 检查更新（软件内下载并安装）· 崩溃兜底 · 界面缓存秒开
  * ET协会出品 · © ET
@@ -79,7 +80,7 @@ public class MainActivity extends Activity {
 
     /* 签名防注入：本应用真实签名哈希（构建后回填，见 build.sh 两遍打包） */
     static final String EXPECTED_SIG = "4a7eee440f0a87274aff7ddbf690d9c8f5422826e71b0234a18727c0950d6a6b";
-    static final String APP_VER = "3.1.0";
+    static final String APP_VER = "3.1.1";
     static final String REPO = "ETQWFD/ETVM";
 
     /* 配色（随主题切换，非 final） */
@@ -287,10 +288,10 @@ public class MainActivity extends Activity {
 
         loadVms();
         seedBuiltIn();
-        /* 内置镜像后台预解包（不阻塞首屏），秒开 */
-        h.post(() -> extractBundled());
-        show(0);
-        typeWelcome();
+        /* 内置镜像后台线程预解包（不占用主线程，启动飞快、不卡顿） */
+        new Thread(() -> extractBundled()).start();
+        /* 无欢迎动画，直接进入首页 */
+        show(1);
         clockTick();
     }
 
@@ -492,25 +493,58 @@ public class MainActivity extends Activity {
     /* ================= 屏幕切换 ================= */
     private void show(int s) {
         scr = s;
-        holder.removeAllViews();
-        /* 界面缓存：重复进入的页面直接复用（秒开），数据刷新走 renderXxx */
-        View cached = viewCache.get(s);
-        if (cached != null && s != 0 && s != 1 && s != 2) {
-            holder.addView(cached);
-            return;
-        }
+        View target = null;
+        /* 构建/获取目标视图（缓存的直接复用，秒开） */
         switch (s) {
-            case 0: holder.addView(buildWelcome()); break;
-            case 1: { View v = viewCache.get(1); if (v == null) { v = buildHome(); viewCache.put(1, v); } holder.addView(v); renderHome(); break; }
-            case 2: holder.addView(buildWizard()); break;
-            case 3: { View v = viewCache.get(3); if (v == null) { v = buildSettings(); viewCache.put(3, v); } holder.addView(v); break; }
-            case 4: holder.addView(buildBoot()); break;
-            case 5: holder.addView(buildVm()); break;
-            case 6: { View v = viewCache.get(6); if (v == null) { v = buildStore(); viewCache.put(6, v); } holder.addView(v); renderStore(); break; }
-            case 7: { View v = viewCache.get(7); if (v == null) { v = buildRomStore(); viewCache.put(7, v); } holder.addView(v); renderRomStore(); break; }
-            case 8: { View v = viewCache.get(8); if (v == null) { v = buildFiles(); viewCache.put(8, v); } holder.addView(v); renderFiles(); break; }
-            case 9: { View v = viewCache.get(9); if (v == null) { v = buildDev(); viewCache.put(9, v); } holder.addView(v); break; }
-            case 10: { View v = viewCache.get(10); if (v == null) { v = buildAbout(); viewCache.put(10, v); } holder.addView(v); break; }
+            case 1: {
+                target = viewCache.get(1);
+                if (target == null) { target = buildHome(); viewCache.put(1, target); }
+                renderHome();
+                break;
+            }
+            case 2: target = buildWizard(); break;
+            case 3: {
+                target = viewCache.get(3);
+                if (target == null) { target = buildSettings(); viewCache.put(3, target); }
+                break;
+            }
+            case 4: target = buildBoot(); break;
+            case 5: target = buildVm(); break;
+            case 6: {
+                target = viewCache.get(6);
+                if (target == null) { target = buildStore(); viewCache.put(6, target); }
+                renderStore();
+                break;
+            }
+            case 7: {
+                target = viewCache.get(7);
+                if (target == null) { target = buildRomStore(); viewCache.put(7, target); }
+                renderRomStore();
+                break;
+            }
+            case 8: {
+                target = viewCache.get(8);
+                if (target == null) { target = buildFiles(); viewCache.put(8, target); }
+                renderFiles();
+                break;
+            }
+            case 9: {
+                target = viewCache.get(9);
+                if (target == null) { target = buildDev(); viewCache.put(9, target); }
+                break;
+            }
+            case 10: {
+                target = viewCache.get(10);
+                if (target == null) { target = buildAbout(); viewCache.put(10, target); }
+                break;
+            }
+        }
+        if (target != null) {
+            /* 兜底：无论什么路径导致视图仍挂在旧容器上，先摘除再挂载，杜绝
+               "The specified child already has a parent" 崩溃 */
+            if (target.getParent() != null) ((ViewGroup) target.getParent()).removeView(target);
+            holder.removeAllViews();
+            holder.addView(target);
         }
     }
     private void clearCache() { viewCache.clear(); }

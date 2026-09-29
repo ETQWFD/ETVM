@@ -29,7 +29,7 @@ public class ETVMPC {
     /* ===== 防注入：本 jar 的 SHA-256（构建后回填，两遍编译） ===== */
     static String selfHash = "";
     static boolean selfOk = true;
-    static final String APP_VER = "1.0.0";
+    static final String APP_VER = "3.1.1";
     static final String REPO = "ETQWFD/ETVM";
 
     /* 配色（随主题切换） */
@@ -190,7 +190,6 @@ public class ETVMPC {
         root.setBackground(c(BG));
         win.setContentPane(root);
 
-        screens.put("welcome", buildWelcome());
         screens.put("home", buildHome());
         screens.put("wizard", buildWizard());
         screens.put("settings", buildSettings());
@@ -201,7 +200,8 @@ public class ETVMPC {
         screens.put("files", buildFiles());
         screens.put("about", buildAbout());
         for (Map.Entry<String, JComponent> e : screens.entrySet()) root.add(e.getKey(), e.getValue());
-        show("welcome");
+        /* 无欢迎动画，直接进入首页 */
+        show("home");
         win.setVisible(true);
         new javax.swing.Timer(60000, e -> checkUpdate(false)).start();
     }

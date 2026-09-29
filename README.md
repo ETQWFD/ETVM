@@ -1,22 +1,23 @@
-# ET虚拟机 v3.1.0
+# ET虚拟机 v3.1.1
 
 **ET协会出品 · 版权所有 © ET**
 
 纯 Java 原生实现的安卓虚拟机。不再依赖网页 / WebView 内核，一切功能真实可用。
 
 - 包名：`com.et.vm`
-- 版本：3.1.0（versionCode 310）
+- 版本：3.1.1（versionCode 311）
 - 目标 SDK：34（Android 13 / 14 权限兼容）
 - 最小系统：Android 7.0（API 24）
 - 官网：https://ETQWFD.github.io/ETVM/
 
 ---
 
-## 一、新版本亮点（v3.1.0）
+## 一、新版本亮点（v3.1.1）
 
 | 项目 | 说明 |
 |---|---|
-| 崩溃修复 | 进入首页卡死/闪退已修复：内置镜像后台解包 + 界面缓存秒开 + 全局崩溃兜底（不再闪退，写 crash.log 并回首页） |
+| 崩溃修复 | 进入首页偶发崩溃（child already has a parent）根治：屏幕切换防重复挂载；内置镜像改后台线程解包 |
+| 直进首页 | 去掉欢迎动画，打开 App 直接进入首页（手机版/电脑版一致），启动飞快 |
 | 三语言 | 设置内切换 中文 / English / 日本語 |
 | 多主题 | 5 套暗色主题：深空黑 / 深海蓝 / 翡翠绿 / 暗夜紫 / 落日橙 |
 | 检查更新 | 检测 GitHub 最新 Release → 询问 → 软件内下载 → 申请安装权限 → 直接安装（安卓）；电脑版下载便携包 |
@@ -37,7 +38,7 @@
 
 ### 安卓版
 
-1. 从官网 / Release 下载 `ETVM-v3.1.0.apk`。
+1. 从官网 / Release 下载 `ETVM-v3.1.1.apk`。
 2. 安装时允许「安装未知来源应用」。
 3. 打开 App，欢迎页会展示设备检测与防注入状态。
 
@@ -116,7 +117,7 @@
 
 ```bash
 # 依赖：Android SDK build-tools 34、JDK 17、python3、launch4j
-bash build.sh          # 安卓 APK：ET虚拟机-v3.1.0.apk
+bash build.sh          # 安卓 APK：ET虚拟机-v3.1.1.apk
 javac -encoding UTF-8 -cp libs/json.jar -d pc-build src-pc/com/et/vm/ETVMPC.java src/com/et/vm/RomDetect.java src/com/et/vm/License.java
 jar cfm pc-dist/ETVM-pc.jar pc-manifest.mf -C pc-build .
 java -jar launch4j.jar pc-dist/l4j.xml   # 生成 ETVM.exe
