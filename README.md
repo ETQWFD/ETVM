@@ -1,23 +1,29 @@
-# ET虚拟机 v3.0.0
+# ET虚拟机 v3.1.0
 
 **ET协会出品 · 版权所有 © ET**
 
 纯 Java 原生实现的安卓虚拟机。不再依赖网页 / WebView 内核，一切功能真实可用。
 
 - 包名：`com.et.vm`
-- 版本：3.0.0（versionCode 300）
+- 版本：3.1.0（versionCode 310）
 - 目标 SDK：34（Android 13 / 14 权限兼容）
 - 最小系统：Android 7.0（API 24）
 - 官网：https://ETQWFD.github.io/ETVM/
 
 ---
 
-## 一、新版本亮点（v3.0.0）
+## 一、新版本亮点（v3.1.0）
 
 | 项目 | 说明 |
 |---|---|
+| 崩溃修复 | 进入首页卡死/闪退已修复：内置镜像后台解包 + 界面缓存秒开 + 全局崩溃兜底（不再闪退，写 crash.log 并回首页） |
+| 三语言 | 设置内切换 中文 / English / 日本語 |
+| 多主题 | 5 套暗色主题：深空黑 / 深海蓝 / 翡翠绿 / 暗夜紫 / 落日橙 |
+| 检查更新 | 检测 GitHub 最新 Release → 询问 → 软件内下载 → 申请安装权限 → 直接安装（安卓）；电脑版下载便携包 |
+| 内置系统 | 内置 ET-OS 7.0 已安装好且**不可删除**，创建即用 |
+| Windows 版 | 电脑版 ETVM.exe（纯 Java Swing 原生，内置 Java 运行环境，hash.txt 防注入） |
 | 原生界面 | 欢迎页 / 首页 / 创建向导 / 设置 / 开机 / 桌面 / 应用中心 / ROM 商店 / 连接储存 / 开发者 / 关于，全部 Java 原生实现，无 WebView |
-| 内置系统 | 随 APK 内置 **32 位 ET-OS 7.0** 精简镜像（未压缩约 4MB，≤100MB 约束），首次启动自动安装，之后直达桌面 |
+| 内置系统 | 随 APK 内置 **32 位 ET-OS 7.0** 精简镜像（未压缩约 4MB，已安装好、不可删除），创建即用、启动飞快 |
 | ROM 商店 | 原生读取 assets 目录 + 实时源检查，**列表刷新不再失败**；内置 2 条真实 32 位 ROM（SourceForge 官方源，≤400MB） |
 | 实时检测 | 纯 Java 引擎解析 PE / ISO / ZIP，检测 ROM 位数（32 / 64）并判定匹配；APK 导入自动检测 ABI 兼容 |
 | 连接储存 | 真机 → 虚拟机单向共享文件夹，虚拟机内可查看、复制文件（无法反向删除真机文件） |
@@ -29,11 +35,22 @@
 
 ## 二、安装
 
-1. 从官网 / Release 下载 `ET虚拟机-v3.0.0.apk`。
+### 安卓版
+
+1. 从官网 / Release 下载 `ETVM-v3.1.0.apk`。
 2. 安装时允许「安装未知来源应用」。
 3. 打开 App，欢迎页会展示设备检测与防注入状态。
 
+### Windows 电脑版
+
+1. 下载 `ETVM-Windows-x64.zip`（约 42MB，内置 Java 运行环境）。
+2. 解压后双击 `ETVM.exe` 即可运行，无需安装 Java。
+3. 数据目录：`C:\Users\<用户名>\ETVM-data\`（shared 共享文件夹 / vm 存储 / roms / vms.json / config.properties）。
+4. `hash.txt` 与本程序实时校验完整性，被修改/注入会拒绝运行。
+
 ## 三、权限说明
+
+> Windows 电脑版无需系统权限，直接可用。
 
 创建虚拟机向导第 3 步可逐项申请并实时查看授权状态：
 
@@ -98,9 +115,12 @@
 ## 九、构建（开发者）
 
 ```bash
-# 依赖：Android SDK build-tools 34、JDK 17、python3
-bash build.sh          # 产物：ET虚拟机-v3.0.0.apk
-cd build/jvmtest && javac -cp . UnitTest.java && java -cp . UnitTest   # JVM 单测（10 项）
+# 依赖：Android SDK build-tools 34、JDK 17、python3、launch4j
+bash build.sh          # 安卓 APK：ET虚拟机-v3.1.0.apk
+javac -encoding UTF-8 -cp libs/json.jar -d pc-build src-pc/com/et/vm/ETVMPC.java src/com/et/vm/RomDetect.java src/com/et/vm/License.java
+jar cfm pc-dist/ETVM-pc.jar pc-manifest.mf -C pc-build .
+java -jar launch4j.jar pc-dist/l4j.xml   # 生成 ETVM.exe
+# JVM 单测（10 项）：javac -cp build/jvmtest -d build/jvmtest test/jvm/UnitTest.java && java -cp build/jvmtest UnitTest
 ```
 
 ## 十、版权

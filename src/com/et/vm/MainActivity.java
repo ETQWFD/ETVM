@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
@@ -47,14 +48,20 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -63,24 +70,138 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /**
- * ET虚拟机 v3.0.0 · 原生 Java 版（完全无 WebView）
- * 内置 ET-OS 7.0 精简系统（32 位）· ROM 商店 · 连接储存 · 签名防注入 · 设备授权码
+ * ET虚拟机 v3.1.0 · 原生 Java 版（完全无 WebView）
+ * 内置 ET-OS 7.0 精简系统（32 位，不可删除）· ROM 商店 · 连接储存 · 签名防注入 · 设备授权码
+ * 三语言（中/英/日）· 多主题 · 检查更新（软件内下载并安装）· 崩溃兜底 · 界面缓存秒开
  * ET协会出品 · © ET
  */
 public class MainActivity extends Activity {
 
     /* 签名防注入：本应用真实签名哈希（构建后回填，见 build.sh 两遍打包） */
     static final String EXPECTED_SIG = "4a7eee440f0a87274aff7ddbf690d9c8f5422826e71b0234a18727c0950d6a6b";
+    static final String APP_VER = "3.1.0";
+    static final String REPO = "ETQWFD/ETVM";
 
-    /* 配色 */
-    static final int BG = 0xFF070B15, CARD = 0xFF132246, CARD2 = 0xFF0D1729,
+    /* 配色（随主题切换，非 final） */
+    static int BG = 0xFF070B15, CARD = 0xFF132246, CARD2 = 0xFF0D1729,
             LINE = 0xFF1E2E4F, ACCENT = 0xFF00E5FF, BLUE = 0xFF2F7BFF,
             TXT = 0xFFE8EEFB, SUB = 0xFF7482A3, OK = 0xFF2EE6A8,
             BAD = 0xFFFF6B6B, WARN = 0xFFFFC44D, GREEN = 0xFF00B894;
 
+    /* ================= 多语言 ================= */
+    private String lang = "zh";
+    private static final String[][] STR = {
+            /* key, zh, en, ja */
+            {"welcome", "欢迎进入 ET 虚拟机 · 原生引擎\n内置 ET-OS 7.0 (32位) 已就绪\nROM 商店 · 连接储存 · 防注入", "Welcome to ET Virtual Machine · Native Engine\nET-OS 7.0 (32-bit) bundled & ready\nROM Store · Shared Storage · Anti-Injection", "ET仮想マシンへようこそ · ネイティブエンジン\nET-OS 7.0（32bit）内蔵・準備完了\nROMストア · 共有ストレージ · 改ざん防止"},
+            {"enterHome", "进入首页", "Enter Home", "ホームへ"},
+            {"welcomeTitle", "欢迎回来", "Welcome Back", "おかえりなさい"},
+            {"homeSub", "ET 虚拟机管理台 · 原生 Java 引擎", "ET VM Console · Native Java Engine", "ET仮想マシン管理台 · ネイティブJavaエンジン"},
+            {"m1", "我的机器", "My Machines", "マイマシン"},
+            {"m1d", "管理已创建的虚拟机", "Manage created VMs", "作成済みVMの管理"},
+            {"m2", "切换机 · 创建虚拟机", "Switch · Create VM", "切替 · VM作成"},
+            {"m2d", "上传 ROM · 配置系统环境", "Upload ROM · Configure system", "ROMアップロード · 環境設定"},
+            {"m3", "应用中心", "App Center", "アプリセンター"},
+            {"m3d", "导入真机软件到虚拟机", "Import device apps to VM", "端末アプリをVMへインポート"},
+            {"m4", "ROM 商店", "ROM Store", "ROMストア"},
+            {"m4d", "下载官方精简系统镜像（≤400MB）", "Download official lite images (≤400MB)", "公式ライトイメージ（≤400MB）をダウンロード"},
+            {"m5", "关于 & 授权", "About & License", "情報 & ライセンス"},
+            {"m5d", "设备信息 · 授权码 · 防注入", "Device info · License · Anti-injection", "端末情報 · ライセンス · 改ざん防止"},
+            {"noVm", "还没有虚拟机，点击创建", "No VM yet, tap to create", "VMがありません。作成をタップ"},
+            {"start", "启动", "Start", "起動"},
+            {"settings", "设置", "Settings", "設定"},
+            {"delete", "删除", "Delete", "削除"},
+            {"ready", "已就绪", "Ready", "準備完了"},
+            {"firstBoot", "待首启", "First boot", "初回起動待ち"},
+            {"builtin", "内置", "Built-in", "内蔵"},
+            {"createVm", "创建虚拟机", "Create VM", "VM作成"},
+            {"back", "返回", "Back", "戻る"},
+            {"lang", "语言", "Language", "言語"},
+            {"theme", "主题", "Theme", "テーマ"},
+            {"checkUpdate", "检查更新", "Check Updates", "更新を確認"},
+            {"updateTitle", "发现新版本", "New Version Found", "新しいバージョンが見つかりました"},
+            {"updateAsk", "发现新版本 %s\n是否立即下载并安装？", "New version %s available.\nDownload & install now?", "新しいバージョン %s があります。\n今すぐダウンロードしてインストールしますか？"},
+            {"updateYes", "下载并安装", "Download & Install", "ダウンロードしてインストール"},
+            {"updateNo", "暂不", "Later", "後で"},
+            {"updateLatest", "已是最新版本", "You are up to date", "最新バージョンです"},
+            {"updateDlStart", "开始下载新版本…", "Downloading new version…", "新バージョンをダウンロード中…"},
+            {"updateDlDone", "下载完成，正在请求安装…", "Downloaded. Requesting install…", "ダウンロード完了。インストールを要求中…"},
+            {"updateErr", "检查更新失败，请检查网络", "Update check failed, check network", "更新確認に失敗しました。ネットワークを確認してください"},
+            {"wizardStep", "第 %d 步 / 共 4 步", "Step %d of 4", "ステップ %d / 4"},
+            {"wName", "虚拟机名称", "VM Name", "VM名"},
+            {"wBits", "系统位数", "System Bits", "システムビット"},
+            {"wRom", "上传自己的 ROM 镜像\n支持 .zip / .img / .iso，仅支持安卓", "Upload your ROM image\n.zip / .img / .iso — Android only", "ROMイメージをアップロード\n.zip / .img / .iso — Androidのみ"},
+            {"wStore", "从 ROM 商店选择", "Pick from ROM Store", "ROMストアから選択"},
+            {"wPerm", "权限申请", "Permissions", "権限申請"},
+            {"wConf", "高级设置", "Advanced", "詳細設定"},
+            {"fps", "刷新频率", "Refresh Rate", "リフレッシュレート"},
+            {"fpsHint", "最高 120 帧，默认 60 帧", "Up to 120 fps, default 60", "最大120fps、デフォルト60"},
+            {"bootAnim", "开机动画", "Boot Animation", "起動アニメ"},
+            {"customAnim", "自定义开机动画（图片）", "Custom boot animation (image)", "カスタム起動アニメ（画像）"},
+            {"gapps", "安装 Google 三件套", "Install Google Apps", "Googleアプリをインストール"},
+            {"xposed", "安装 Xposed 框架", "Install Xposed", "Xposedをインストール"},
+            {"root", "安装 Root 工具", "Install Root tools", "Rootツールをインストール"},
+            {"verNum", "虚拟机版本号", "VM Version Number", "VMバージョン番号"},
+            {"create", "正式创建", "Create", "作成"},
+            {"bootInstall", "正在安装系统…", "Installing system…", "システムをインストール中…"},
+            {"bootFirst", "首次启动，正在安装内置 ROM…", "First boot: installing bundled ROM…", "初回起動：内蔵ROMをインストール中…"},
+            {"bootDone", "安装完成，进入系统", "Installed. Entering system…", "インストール完了。システムへ"},
+            {"shareBanner", "连接储存已连接：真机单向发送文件 → 虚拟机内查看", "Shared storage connected: device → VM one-way files", "共有ストレージ接続：端末 → VM 一方通行ファイル"},
+            {"stApps", "系统自带应用", "Built-in Apps", "内蔵アプリ"},
+            {"stImport", "从真机导出应用", "Import from Device", "端末からインポート"},
+            {"stImportHint", "导出真机软件后会自动检测位数兼容性，仅支持当前虚拟机位数的应用才会被安装。", "Apps are ABI-checked automatically; only compatible ones install.", "ABI互換性を自動判定し、互換アプリのみインストールされます。"},
+            {"filesTitle", "连接储存", "Shared Storage", "共有ストレージ"},
+            {"filesV", "虚拟机存储", "VM Storage", "VMストレージ"},
+            {"filesS", "真机共享", "Device Shared", "端末共有"},
+            {"romTitle", "ROM 商店", "ROM Store", "ROMストア"},
+            {"refresh", "刷新列表", "Refresh", "更新"},
+            {"dl", "下载", "Download", "ダウンロード"},
+            {"useRom", "使用此 ROM", "Use this ROM", "このROMを使用"},
+            {"downloading", "下载中…", "Downloading…", "ダウンロード中…"},
+            {"devTitle", "开发者", "Developer", "開発者"},
+            {"aboutTitle", "关于 & 授权", "About & License", "情報 & ライセンス"},
+            {"sigOk", "✓ 签名有效", "✓ Signature valid", "✓ 署名は有効です"},
+            {"sigBad", "✗ 签名异常", "✗ Signature invalid", "✗ 署名が不正です"},
+            {"power", "正在关机…", "Shutting down…", "シャットダウン中…"},
+            {"themeDark", "深空黑", "Deep Space", "ディープスペース"},
+            {"themeOcean", "深海蓝", "Ocean Blue", "オーシャンブルー"},
+            {"themeForest", "翡翠绿", "Emerald", "エメラルド"},
+            {"themeViolet", "暗夜紫", "Violet Night", "バイオレットナイト"},
+            {"themeSunset", "落日橙", "Sunset", "サンセット"},
+            {"zh", "中文", "Chinese", "中国語"},
+            {"en", "English", "English", "英語"},
+            {"ja", "日本語", "Japanese", "日本語"},
+    };
+
+    private String S(String key) {
+        for (String[] row : STR) if (row[0].equals(key)) {
+            int idx = "en".equals(lang) ? 2 : ("ja".equals(lang) ? 3 : 1);
+            if (idx < row.length && !row[idx].isEmpty()) return row[idx];
+            return row[1];
+        }
+        return key;
+    }
+    private String SF(String key, Object... args) { return String.format(S(key), args); }
+
+    /* 主题 */
+    private static final int[][] THEMES = {
+            /* 深空黑 */ {0xFF070B15, 0xFF132246, 0xFF0D1729, 0xFF1E2E4F, 0xFF00E5FF, 0xFF2F7BFF, 0xFFE8EEFB, 0xFF7482A3, 0xFF2EE6A8, 0xFFFF6B6B, 0xFFFFC44D, 0xFF00B894},
+            /* 深海蓝 */ {0xFF030A1A, 0xFF0E2A5C, 0xFF081B3A, 0xFF1D3E7E, 0xFF7FD8FF, 0xFF3E8BFF, 0xFFEAF2FF, 0xFF7E96C0, 0xFF37E6B8, 0xFFFF6B7A, 0xFFFFCE54, 0xFF2EE6A8},
+            /* 翡翠绿 */ {0xFF04120D, 0xFF0E3A2A, 0xFF07261B, 0xFF1B5340, 0xFF6CF7C4, 0xFF2FBF8F, 0xFFEAFBF3, 0xFF6FA892, 0xFF37E6B8, 0xFFFF6B7A, 0xFFFFCE54, 0xFF2EE6A8},
+            /* 暗夜紫 */ {0xFF0C0818, 0xFF2A1A55, 0xFF181036, 0xFF3B2874, 0xFFC89BFF, 0xFF7C4DFF, 0xFFF2ECFF, 0xFF9381B8, 0xFF7CE6B8, 0xFFFF6B9A, 0xFFFFCE54, 0xFFB44DFF},
+            /* 落日橙 */ {0xFF150A06, 0xFF3A2412, 0xFF221407, 0xFF55331A, 0xFFFFC98F, 0xFFFF8F43, 0xFFFFF3E6, 0xFFB08968, 0xFF37E6B8, 0xFFFF6B6B, 0xFFFFCE54, 0xFFFFA53F},
+    };
+    private void applyTheme(int id) {
+        int[] t = THEMES[Math.max(0, Math.min(id, THEMES.length - 1))];
+        BG = t[0]; CARD = t[1]; CARD2 = t[2]; LINE = t[3]; ACCENT = t[4]; BLUE = t[5];
+        TXT = t[6]; SUB = t[7]; OK = t[8]; BAD = t[9]; WARN = t[10]; GREEN = t[11];
+        sp.edit().putString("theme", String.valueOf(id)).apply();
+    }
+    private int themeId() { try { return Integer.parseInt(sp.getString("theme", "0")); } catch (Exception e) { return 0; } }
+
     private FrameLayout holder;
     private final Handler h = new Handler(Looper.getMainLooper());
     private int scr = 0; // 0 welcome 1 home 2 wizard 3 settings 4 boot 5 vm 6 store 7 romstore 8 files 9 dev 10 about
+    private final Map<Integer, View> viewCache = new HashMap<>();
 
     private SharedPreferences sp;
     private JSONArray vms = new JSONArray();
@@ -122,12 +243,34 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        /* 全局崩溃兜底：任何异常不闪退，写日志并回到首页 */
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+            try {
+                File dir = getExternalFilesDir(null);
+                if (dir != null) {
+                    FileWriter fw = new FileWriter(new File(dir, "crash.log"), true);
+                    fw.write(System.currentTimeMillis() + " " + t.getName() + " " + e + "\n");
+                    for (StackTraceElement el : e.getStackTrace()) fw.write("  at " + el + "\n");
+                    fw.close();
+                }
+            } catch (Exception ignored) {}
+            h.post(() -> {
+                try {
+                    Toast.makeText(this, "异常已捕获并记录，请查看 crash.log", Toast.LENGTH_LONG).show();
+                    show(1);
+                } catch (Exception ignored) {}
+            });
+        });
+
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
 
         sp = getSharedPreferences("et_vm_store", MODE_PRIVATE);
+        lang = sp.getString("lang", "zh");
+        applyTheme(themeId());
         androidId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
         if (androidId == null) androidId = "etvm";
         sigHex = computeSigHash();
@@ -144,7 +287,8 @@ public class MainActivity extends Activity {
 
         loadVms();
         seedBuiltIn();
-        extractBundled();
+        /* 内置镜像后台预解包（不阻塞首屏），秒开 */
+        h.post(() -> extractBundled());
         show(0);
         typeWelcome();
         clockTick();
@@ -243,7 +387,12 @@ public class MainActivity extends Activity {
     private void saveVms() { sp.edit().putString("vms", vms.toString()).apply(); }
 
     private void seedBuiltIn() {
-        if (vms.length() > 0) return;
+        /* 内置 ET-OS 7.0：已安装好系统（firstBoot=false），不可删除，缺失时自动补回 */
+        boolean has = false;
+        for (int i = 0; i < vms.length(); i++) {
+            try { if (vms.getJSONObject(i).optBoolean("builtin", false)) { has = true; break; } } catch (Exception ignored) {}
+        }
+        if (has) return;
         try {
             JSONObject vm = new JSONObject();
             vm.put("id", 1);
@@ -251,6 +400,7 @@ public class MainActivity extends Activity {
             vm.put("bits", "32");
             vm.put("ver", "Android 7.0");
             vm.put("model", "内置精简机型");
+            vm.put("builtin", true);
             JSONObject rom = new JSONObject();
             rom.put("name", "内置 ET-OS 7.0 精简系统");
             rom.put("size", 4218001L);
@@ -274,7 +424,11 @@ public class MainActivity extends Activity {
             inst.put(st);
             vm.put("installed", inst);
             vm.put("created", System.currentTimeMillis());
-            vms.put(vm);
+            /* 置顶：内置机永远排在第一个 */
+            JSONArray next = new JSONArray();
+            next.put(vm);
+            for (int i = 0; i < vms.length(); i++) next.put(vms.getJSONObject(i));
+            vms = next;
             saveVms();
         } catch (Exception ignored) {}
     }
@@ -339,20 +493,27 @@ public class MainActivity extends Activity {
     private void show(int s) {
         scr = s;
         holder.removeAllViews();
+        /* 界面缓存：重复进入的页面直接复用（秒开），数据刷新走 renderXxx */
+        View cached = viewCache.get(s);
+        if (cached != null && s != 0 && s != 1 && s != 2) {
+            holder.addView(cached);
+            return;
+        }
         switch (s) {
             case 0: holder.addView(buildWelcome()); break;
-            case 1: holder.addView(buildHome()); break;
+            case 1: { View v = viewCache.get(1); if (v == null) { v = buildHome(); viewCache.put(1, v); } holder.addView(v); renderHome(); break; }
             case 2: holder.addView(buildWizard()); break;
-            case 3: holder.addView(buildSettings()); break;
+            case 3: { View v = viewCache.get(3); if (v == null) { v = buildSettings(); viewCache.put(3, v); } holder.addView(v); break; }
             case 4: holder.addView(buildBoot()); break;
             case 5: holder.addView(buildVm()); break;
-            case 6: holder.addView(buildStore()); break;
-            case 7: holder.addView(buildRomStore()); break;
-            case 8: holder.addView(buildFiles()); break;
-            case 9: holder.addView(buildDev()); break;
-            case 10: holder.addView(buildAbout()); break;
+            case 6: { View v = viewCache.get(6); if (v == null) { v = buildStore(); viewCache.put(6, v); } holder.addView(v); renderStore(); break; }
+            case 7: { View v = viewCache.get(7); if (v == null) { v = buildRomStore(); viewCache.put(7, v); } holder.addView(v); renderRomStore(); break; }
+            case 8: { View v = viewCache.get(8); if (v == null) { v = buildFiles(); viewCache.put(8, v); } holder.addView(v); renderFiles(); break; }
+            case 9: { View v = viewCache.get(9); if (v == null) { v = buildDev(); viewCache.put(9, v); } holder.addView(v); break; }
+            case 10: { View v = viewCache.get(10); if (v == null) { v = buildAbout(); viewCache.put(10, v); } holder.addView(v); break; }
         }
     }
+    private void clearCache() { viewCache.clear(); }
 
     /* ================= 欢迎页 ================= */
     private View buildWelcome() {
@@ -388,13 +549,15 @@ public class MainActivity extends Activity {
         tvTyped.setMinHeight(dp(44));
         p.addView(tvTyped);
 
-        Button b = btnPrimary("进入首页", v -> show(1));
+        Button b = btnPrimary(S("enterHome"), v -> {
+            try { show(1); } catch (Exception e) { toast("初始化失败：" + e); }
+        });
         b.setTextSize(15);
         LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(dp(220), dp(50));
         bl.gravity = Gravity.CENTER;
         p.addView(b, bl);
 
-        TextView f = text("© ET · v3.0.0 · 内置 ET-OS 7.0", 11, 0xFF3E4C68, 0);
+        TextView f = text("© ET · v" + APP_VER + " · 内置 ET-OS 7.0", 11, 0xFF3E4C68, 0);
         f.setGravity(Gravity.CENTER);
         f.setPadding(0, dp(24), 0, 0);
         p.addView(f);
@@ -402,7 +565,7 @@ public class MainActivity extends Activity {
     }
 
     private void typeWelcome() {
-        final String msg = "欢迎进入 ET 虚拟机 · 原生引擎\n内置 ET-OS 7.0 (32位) 已就绪\nROM 商店 · 连接储存 · 防注入";
+        final String msg = S("welcome");
         final int[] i = {0};
         typedDone = false;
         h.post(new Runnable() {
@@ -432,8 +595,8 @@ public class MainActivity extends Activity {
         LinearLayout top = rowWrap();
         LinearLayout tt = new LinearLayout(this);
         tt.setOrientation(LinearLayout.VERTICAL);
-        tt.addView(text("欢迎回来", 20, TXT, 1));
-        tt.addView(subText("ET 虚拟机管理台 · 原生 Java 引擎"));
+        tt.addView(text(S("welcomeTitle"), 20, TXT, 1));
+        tt.addView(subText(S("homeSub")));
         top.addView(tt);
         TextView badge = text("32位内置", 11, 0xFF7FB3FF, 1);
         badge.setBackground(round(0xFF0E1830, 99));
@@ -443,11 +606,11 @@ public class MainActivity extends Activity {
         p.addView(top);
 
         String[][] menus = {
-                {"01", "我的机器", "管理已创建的虚拟机", "home"},
-                {"02", "切换机 · 创建虚拟机", "上传 ROM · 配置系统环境", "wizard"},
-                {"03", "应用中心", "导入真机软件到虚拟机", "store"},
-                {"04", "ROM 商店", "下载官方精简系统镜像（≤400MB）", "romstore"},
-                {"05", "关于 & 授权", "设备信息 · 授权码 · 防注入", "about"}};
+                {"01", S("m1"), S("m1d"), "home"},
+                {"02", S("m2"), S("m2d"), "wizard"},
+                {"03", S("m3"), S("m3d"), "store"},
+                {"04", S("m4"), S("m4d"), "romstore"},
+                {"05", S("m5"), S("m5d"), "about"}};
         for (String[] m : menus) {
             LinearLayout item = card();
             item.setPadding(dp(14), dp(13), dp(14), dp(13));
@@ -479,7 +642,7 @@ public class MainActivity extends Activity {
             p.addView(item, il);
         }
 
-        p.addView(sectionTitle("我的机器"));
+        p.addView(sectionTitle(S("m1")));
         homeVmList = new LinearLayout(this);
         homeVmList.setOrientation(LinearLayout.VERTICAL);
         p.addView(homeVmList);
@@ -491,28 +654,30 @@ public class MainActivity extends Activity {
         if (homeVmList == null) return;
         homeVmList.removeAllViews();
         if (vms.length() == 0) {
-            homeVmList.addView(text("还没有虚拟机，点击创建", 13, 0xFF46546E, 0));
+            homeVmList.addView(text(S("noVm"), 13, 0xFF46546E, 0));
             return;
         }
         for (int i = 0; i < vms.length(); i++) {
             try {
                 final JSONObject vm = vms.getJSONObject(i);
                 final int fi = i;
+                final boolean builtin = vm.optBoolean("builtin", false);
+                String nm = vm.optString("name", "?");
                 LinearLayout c = card();
                 c.setPadding(dp(14), dp(12), dp(14), dp(12));
                 LinearLayout head = rowWrap();
-                TextView av = text(vm.optString("name", "?").substring(0, 1), 17, 0xFF8FF4FF, 1);
+                TextView av = text(nm.isEmpty() ? "?" : nm.substring(0, 1), 17, 0xFF8FF4FF, 1);
                 av.setBackground(roundStroke(0x1A2F7BFF, 1, 14));
                 av.setGravity(Gravity.CENTER);
                 head.addView(av, new LinearLayout.LayoutParams(dp(46), dp(46)));
                 LinearLayout tt = new LinearLayout(this);
                 tt.setOrientation(LinearLayout.VERTICAL);
                 tt.setPadding(dp(11), 0, 0, 0);
-                tt.addView(text(vm.optString("name", ""), 15.5f, TXT, 1));
-                tt.addView(subText(vm.optString("ver", "") + " · " + vm.optString("bits", "") + " 位"));
+                tt.addView(text(nm, 15.5f, TXT, 1));
+                tt.addView(subText(vm.optString("ver", "") + " · " + vm.optString("bits", "") + " 位" + (builtin ? " · " + S("builtin") : "")));
                 head.addView(tt);
                 boolean ready = !vm.optBoolean("firstBoot", true);
-                TextView st = text(ready ? "已就绪" : "待首启", 11, ready ? OK : 0xFF8A97AD, 1);
+                TextView st = text(ready ? S("ready") : S("firstBoot"), 11, ready ? OK : 0xFF8A97AD, 1);
                 st.setBackground(round(ready ? 0x142EE6A8 : 0x148A97AD, 99));
                 st.setPadding(dp(10), dp(4), dp(10), dp(4));
                 head.addView(st, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -520,12 +685,14 @@ public class MainActivity extends Activity {
                 c.addView(head);
                 LinearLayout acts = rowWrap();
                 acts.setPadding(0, dp(12), 0, 0);
-                Button start = btnPrimary("启动", v -> { curVm = vm; startBoot(); });
-                Button set = btn("设置", 0xFF182442, v -> { curVm = vm; show(3); });
-                Button del = btn("删除", 0xFF182442, v -> removeVm(fi));
+                Button start = btnPrimary(S("start"), v -> { curVm = vm; startBoot(); });
+                Button set = btn(S("settings"), 0xFF182442, v -> { curVm = vm; show(3); });
                 acts.addView(start, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
                 acts.addView(set, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-                acts.addView(del, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                if (!builtin) {
+                    Button del = btn(S("delete"), 0xFF182442, v -> removeVm(fi));
+                    acts.addView(del, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                }
                 c.addView(acts);
                 LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
                 cl.bottomMargin = dp(10);
@@ -943,64 +1110,227 @@ public class MainActivity extends Activity {
         LinearLayout tt = new LinearLayout(this);
         tt.setOrientation(LinearLayout.VERTICAL);
         tt.setPadding(dp(12), 0, 0, 0);
-        tt.addView(text(curVm == null ? "虚拟机设置" : curVm.optString("name", "") + " · 设置", 19, TXT, 1));
-        tt.addView(subText("刷新率 · 开机动画 · 增强工具"));
+        tt.addView(text(S("settings"), 19, TXT, 1));
+        tt.addView(subText(S("fpsHint") + " · " + S("lang") + " · " + S("theme")));
         top.addView(tt);
         p.addView(top);
 
-        p.addView(text("刷新频率：60 ~ 120 Hz（默认 60）", 13, SUB, 1));
-        fpsVal = text("60 Hz", 13, ACCENT, 1);
-        p.addView(fpsVal);
-        fpsBar = new SeekBar(this);
-        fpsBar.setMax(60);
-        fpsBar.setProgress(curVm != null ? (curVm.optInt("fps", 60) - 60) : 0);
-        fpsBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar sb, int pr, boolean from) { fpsVal.setText((60 + pr) + " Hz"); }
-            @Override public void onStartTrackingTouch(SeekBar sb) {}
-            @Override public void onStopTrackingTouch(SeekBar sb) {}
+        /* ---- 全局：语言 ---- */
+        p.addView(sectionTitle(S("lang")));
+        seg(p, new String[]{S("zh"), S("en"), S("ja")}, "en".equals(lang) ? 1 : ("ja".equals(lang) ? 2 : 0), idx -> {
+            String[] ls = {"zh", "en", "ja"};
+            lang = ls[idx];
+            sp.edit().putString("lang", lang).apply();
+            clearCache();
+            show(3);
+            toast(S("lang"));
         });
-        p.addView(fpsBar);
-        if (curVm != null) fpsVal.setText(curVm.optInt("fps", 60) + " Hz");
 
-        p.addView(text("自定义开机动画", 13, SUB, 1));
-        animBtns = seg(p, new String[]{"ET 经典", "极光粒子", "极简线条", "自定义图片"},
-                curVm != null && curVm.optString("animPath", "").length() > 0 ? 3
-                        : Math.max(0, indexOf(new String[]{"ET 经典", "极光粒子", "极简线条"}, curVm == null ? "ET 经典" : curVm.optString("anim", "ET 经典"))), idx -> {
-                    if (idx == 3) pickFile("bootanim", "");
-                });
-        animHint = subText(curVm != null && curVm.optString("animPath", "").length() > 0 ? "已选择：自定义图片" : "已选择：" + (curVm == null ? "ET 经典" : curVm.optString("anim", "ET 经典")));
-        p.addView(animHint);
+        /* ---- 全局：主题 ---- */
+        p.addView(sectionTitle(S("theme")));
+        seg(p, new String[]{S("themeDark"), S("themeOcean"), S("themeForest"), S("themeViolet"), S("themeSunset")}, themeId(), idx -> {
+            applyTheme(idx);
+            clearCache();
+            show(3);
+            getWindow().setStatusBarColor(BG);
+            getWindow().setNavigationBarColor(BG);
+            toast(S("theme"));
+        });
 
-        p.addView(text("增强工具", 13, SUB, 1));
-        optGapps = new CheckBox(this);
-        optGapps.setText("安装谷歌三件套（Google 服务框架 / Play 商店）");
-        optGapps.setTextColor(TXT);
-        optGapps.setChecked(curVm != null && curVm.optBoolean("gapps", false));
-        p.addView(optGapps);
-        optXposed = new CheckBox(this);
-        optXposed.setText("Xposed 框架（模块化系统增强）");
-        optXposed.setTextColor(TXT);
-        optXposed.setChecked(curVm != null && curVm.optBoolean("xposed", false));
-        p.addView(optXposed);
-        optRoot = new CheckBox(this);
-        optRoot.setText("Root 工具（内置超级用户权限管理）");
-        optRoot.setTextColor(TXT);
-        optRoot.setChecked(curVm != null && curVm.optBoolean("root", false));
-        p.addView(optRoot);
+        /* ---- 全局：检查更新 ---- */
+        p.addView(sectionTitle(S("checkUpdate")));
+        Button upd = btnPrimary(S("checkUpdate"), v -> checkUpdate(true));
+        p.addView(upd, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        ((LinearLayout.LayoutParams) upd.getLayoutParams()).topMargin = dp(6);
+        p.addView(subText("自动检测 GitHub 最新 Release 版本，发现新版本后可直接在软件内下载并安装"));
 
-        p.addView(text("虚拟机版本号", 13, SUB, 1));
-        vmVersionEdit = new EditText(this);
-        vmVersionEdit.setText(curVm == null ? "" : curVm.optString("version", ""));
-        vmVersionEdit.setTextColor(TXT);
-        vmVersionEdit.setHintTextColor(0xFF5E6E90);
-        vmVersionEdit.setBackground(round(0xFF0E162A, 13));
-        vmVersionEdit.setPadding(dp(14), dp(12), dp(14), dp(12));
-        p.addView(vmVersionEdit);
+        /* ---- 虚拟机设置 ---- */
+        if (curVm != null) {
+            p.addView(sectionTitle(curVm.optString("name", "") + " · " + S("settings")));
 
-        Button save = btnPrimary("保存设置", v -> saveSettings());
-        p.addView(save, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
-        ((LinearLayout.LayoutParams) save.getLayoutParams()).topMargin = dp(18);
+            p.addView(text(S("fps") + "：60 ~ 120 Hz", 13, SUB, 1));
+            fpsVal = text("60 Hz", 13, ACCENT, 1);
+            p.addView(fpsVal);
+            fpsBar = new SeekBar(this);
+            fpsBar.setMax(60);
+            fpsBar.setProgress(curVm != null ? (curVm.optInt("fps", 60) - 60) : 0);
+            fpsBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(SeekBar sb, int pr, boolean from) { fpsVal.setText((60 + pr) + " Hz"); }
+                @Override public void onStartTrackingTouch(SeekBar sb) {}
+                @Override public void onStopTrackingTouch(SeekBar sb) {}
+            });
+            p.addView(fpsBar);
+            if (curVm != null) fpsVal.setText(curVm.optInt("fps", 60) + " Hz");
+
+            p.addView(text(S("bootAnim"), 13, SUB, 1));
+            animBtns = seg(p, new String[]{"ET 经典", "极光粒子", "极简线条", S("customAnim")},
+                    curVm != null && curVm.optString("animPath", "").length() > 0 ? 3
+                            : Math.max(0, indexOf(new String[]{"ET 经典", "极光粒子", "极简线条"}, curVm == null ? "ET 经典" : curVm.optString("anim", "ET 经典"))), idx -> {
+                        if (idx == 3) pickFile("bootanim", "");
+                    });
+            animHint = subText(curVm != null && curVm.optString("animPath", "").length() > 0 ? "自定义图片" : (curVm == null ? "ET 经典" : curVm.optString("anim", "ET 经典")));
+            p.addView(animHint);
+
+            p.addView(text(S("fps") + " / " + S("gapps"), 13, SUB, 1));
+            optGapps = new CheckBox(this);
+            optGapps.setText(S("gapps"));
+            optGapps.setTextColor(TXT);
+            optGapps.setChecked(curVm != null && curVm.optBoolean("gapps", false));
+            p.addView(optGapps);
+            optXposed = new CheckBox(this);
+            optXposed.setText(S("xposed"));
+            optXposed.setTextColor(TXT);
+            optXposed.setChecked(curVm != null && curVm.optBoolean("xposed", false));
+            p.addView(optXposed);
+            optRoot = new CheckBox(this);
+            optRoot.setText(S("root"));
+            optRoot.setTextColor(TXT);
+            optRoot.setChecked(curVm != null && curVm.optBoolean("root", false));
+            p.addView(optRoot);
+
+            p.addView(text(S("verNum"), 13, SUB, 1));
+            vmVersionEdit = new EditText(this);
+            vmVersionEdit.setText(curVm == null ? "" : curVm.optString("version", ""));
+            vmVersionEdit.setTextColor(TXT);
+            vmVersionEdit.setHintTextColor(0xFF5E6E90);
+            vmVersionEdit.setBackground(round(0xFF0E162A, 13));
+            vmVersionEdit.setPadding(dp(14), dp(12), dp(14), dp(12));
+            p.addView(vmVersionEdit);
+
+            Button save = btnPrimary(S("create"), v -> saveSettings());
+            p.addView(save, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+            ((LinearLayout.LayoutParams) save.getLayoutParams()).topMargin = dp(18);
+        }
         return sv;
+    }
+
+    /* ================= 检查更新 ================= */
+    private void checkUpdate(final boolean manual) {
+        new Thread(() -> {
+            try {
+                /* 扫描 Releases，找含 .apk 资产的最新版本（安卓平台） */
+                URL u = new URL("https://api.github.com/repos/" + REPO + "/releases?per_page=20");
+                HttpURLConnection c = (HttpURLConnection) u.openConnection();
+                c.setConnectTimeout(8000);
+                c.setReadTimeout(8000);
+                c.setRequestProperty("User-Agent", "ETVM/" + APP_VER);
+                c.setRequestProperty("Accept", "application/vnd.github+json");
+                BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = r.readLine()) != null) sb.append(line);
+                r.close();
+                JSONArray rels = new JSONArray(sb.toString());
+                String tag = "", dlUrl = "", name = "";
+                for (int i = 0; i < rels.length(); i++) {
+                    JSONObject j = rels.getJSONObject(i);
+                    JSONArray assets = j.optJSONArray("assets");
+                    if (assets != null) for (int k = 0; k < assets.length(); k++) {
+                        JSONObject a = assets.getJSONObject(k);
+                        if (a.optString("name", "").endsWith(".apk")) {
+                            tag = j.optString("tag_name", "");
+                            dlUrl = a.optString("browser_download_url", "");
+                            name = a.optString("name", tag);
+                            break;
+                        }
+                    }
+                    if (!tag.isEmpty()) break;
+                }
+                if (tag.isEmpty() || dlUrl.isEmpty()) { h.post(() -> { if (manual) toast(S("updateLatest")); }); return; }
+                if (verNewer(tag, APP_VER)) {
+                    final String fTag = tag, fDl = dlUrl, fName = name;
+                    h.post(() -> {
+                        new AlertDialog.Builder(this)
+                                .setTitle(S("updateTitle"))
+                                .setMessage(SF("updateAsk", fTag))
+                                .setPositiveButton(S("updateYes"), (d, w) -> downloadUpdate(fDl, fName))
+                                .setNegativeButton(S("updateNo"), null)
+                                .show();
+                    });
+                } else {
+                    h.post(() -> { if (manual) toast(S("updateLatest")); });
+                }
+            } catch (Exception e) {
+                h.post(() -> { if (manual) toast(S("updateErr")); });
+            }
+        }).start();
+    }
+
+    /* 比较 tag 形如 v3.1.0 */
+    private boolean verNewer(String tag, String cur) {
+        try {
+            String t = tag.replaceAll("[^0-9.]", "");
+            String c = cur.replaceAll("[^0-9.]", "");
+            String[] ta = t.split("\\."), ca = c.split("\\.");
+            for (int i = 0; i < Math.max(ta.length, ca.length); i++) {
+                int a = i < ta.length ? Integer.parseInt(ta[i]) : 0;
+                int b = i < ca.length ? Integer.parseInt(ca[i]) : 0;
+                if (a > b) return true;
+                if (a < b) return false;
+            }
+            return false;
+        } catch (Exception e) { return false; }
+    }
+
+    private void downloadUpdate(final String url, final String name) {
+        try {
+            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+            DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
+            req.setDestinationInExternalFilesDir(this, "update", "ETVM-update.apk");
+            req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            req.setTitle("ET虚拟机 · " + S("updateTitle"));
+            req.setDescription(name);
+            final long id = dm.enqueue(req);
+            toast(S("updateDlStart"));
+            h.postDelayed(new Runnable() {
+                @Override public void run() {
+                    try {
+                        DownloadManager.Query q = new DownloadManager.Query();
+                        q.setFilterById(id);
+                        Cursor c = dm.query(q);
+                        if (c != null && c.moveToFirst()) {
+                            int status = c.getInt(c.getColumnIndex(DownloadManager.COLUMN_STATUS));
+                            String uri = c.getString(c.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI));
+                            c.close();
+                            if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                                toast(S("updateDlDone"));
+                                installApk(new File(uri.replace("file://", "")));
+                                return;
+                            } else if (status == DownloadManager.STATUS_FAILED) {
+                                toast(S("updateErr"));
+                                return;
+                            }
+                        }
+                        h.postDelayed(this, 1200);
+                    } catch (Exception e) { h.postDelayed(this, 1200); }
+                }
+            }, 1200);
+        } catch (Exception e) {
+            toast(S("updateErr"));
+        }
+    }
+
+    private void installApk(File apk) {
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(Uri.fromFile(apk), "application/vnd.android.package-archive");
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+            /* 提示开启“安装未知来源” */
+            if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
+                new AlertDialog.Builder(this)
+                        .setTitle("安装权限")
+                        .setMessage("请允许「ET虚拟机」安装未知应用，才能安装新版本")
+                        .setPositiveButton("去设置", (d, w) -> {
+                            try { startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName()))); } catch (Exception ignored) {}
+                        })
+                        .setNegativeButton("取消", null)
+                        .show();
+            }
+        } catch (ActivityNotFoundException e) {
+            toast(S("updateErr"));
+        }
     }
 
     private List<Button> animBtns = new ArrayList<>();
