@@ -1,0 +1,26 @@
+{
+  "updated": "2026-09-29",
+  "note": "官方 android-x86 精简系统镜像，单文件 ≤400MB，下载后可正常检测与使用。",
+  "roms": [
+    {
+      "id": "x86-44-r1",
+      "name": "Android 4.4 KitKat (x86 32位)",
+      "ver": "Android 4.4",
+      "bits": "32",
+      "sizeMb": 343,
+      "url": "https://sourceforge.net/projects/android-x86/files/Release%204.4/android-x86-4.4-r1.iso/download",
+      "file": "android-x86-4.4-r1.iso",
+      "desc": "android-x86 官方 4.4 精简镜像，启动轻快，适合低配环境。"
+    },
+    {
+      "id": "x86-51-rc1",
+      "name": "Android 5.1 Lollipop (x86 32位)",
+      "ver": "Android 5.1",
+      "bits": "32",
+      "sizeMb": 358,
+      "url": "https://sourceforge.net/projects/android-x86/files/Release%205.1/android-x86-5.1-rc1.iso/download",
+      "file": "android-x86-5.1-rc1.iso",
+      "desc": "android-x86 官方 5.1 RC 镜像，Material 风格，流畅稳定。"
+    }
+  ]
+}

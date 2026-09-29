@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ET虚拟机</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- 欢迎页 -->
+  <section id="screen-welcome" class="screen">
+    <div class="welcome-inner">
+      <div class="welcome-logo">
+        <div class="chip">
+          <span class="pin pin-t"></span><span class="pin pin-b"></span>
+          <span class="pin pin-l"></span><span class="pin pin-r"></span>
+          <div class="chip-core">ET</div>
+        </div>
+      </div>
+      <h1 class="welcome-title">ET虚拟机</h1>
+      <p class="welcome-sub">ET协会出品 · 全系统环境模拟引擎</p>
+      <p class="welcome-typed" id="welcomeTyped">欢迎进入 ET 虚拟机 · arm64-v8a
+ROM 商店 · 共享文件夹 · 一切皆可运行</p>
+      <button class="btn btn-primary btn-lg" onclick="ETVM.goHome()">进入首页</button>
+      <p class="welcome-foot">© ET · v2.0.0</p>
+    </div>
+  </section>
+
+  <!-- 首页 -->
+  <section id="screen-home" class="screen">
+    <header class="topbar">
+      <div>
+        <h2 id="homeGreeting">欢迎回来</h2>
+        <p class="sub" id="homeSub">ET 虚拟机管理台</p>
+      </div>
+      <div class="chip-badge" id="deviceAbi">--</div>
+    </header>
+
+    <div class="menu-list" id="homeMenu">
+      <div class="menu-item" data-go="machines"><span class="menu-num">01</span><div><b>我的机器</b><i>管理已创建的虚拟机</i></div><span class="arrow">›</span></div>
+      <div class="menu-item" data-go="wizard"><span class="menu-num">02</span><div><b>切换机 · 创建虚拟机</b><i>上传 ROM · 配置系统环境</i></div><span class="arrow">›</span></div>
+      <div class="menu-item" data-go="store"><span class="menu-num">03</span><div><b>应用中心</b><i>导入真机软件到虚拟机</i></div><span class="arrow">›</span></div>
+      <div class="menu-item" data-go="romstore"><span class="menu-num">04</span><div><b>ROM 商店</b><i>下载官方精简系统镜像（≤400MB）</i></div><span class="arrow">›</span></div>
+      <div class="menu-item" data-go="about"><span class="menu-num">05</span><div><b>关于 &amp; 权限</b><i>设备信息 · 权限状态</i></div><span class="arrow">›</span></div>
+    </div>
+
+    <div class="section-title">我的机器 <span class="count-badge" id="vmCount">0</span></div>
+    <div class="vm-list" id="vmList"></div>
+
+    <button class="fab" onclick="ETVM.openWizard()">+</button>
+  </section>
+
+  <!-- 创建向导 -->
+  <section id="screen-wizard" class="screen">
+    <header class="topbar">
+      <button class="btn-back" onclick="ETVM.backHome()">‹</button>
+      <div><h2>创建虚拟机</h2><p class="sub" id="wizardStepLabel">第 1 步 / 4 · 系统环境</p></div>
+    </header>
+
+    <div class="steps" id="wizardSteps">
+      <span class="st on">1</span><span class="st-line"></span>
+      <span class="st">2</span><span class="st-line"></span>
+      <span class="st">3</span><span class="st-line"></span>
+      <span class="st">4</span>
+    </div>
+
+    <div class="wstep" id="wstep1">
+      <label class="field-label">虚拟机名称</label>
+      <input class="input" id="vmName" placeholder="例如：我的安卓机" value="我的安卓机">
+      <label class="field-label">系统位数</label>
+      <div class="seg" id="bitsSeg">
+        <button class="seg-btn" data-bits="32">32 位</button>
+        <button class="seg-btn on" data-bits="64">64 位</button>
+      </div>
+      <p class="hint">64 位虚拟机可运行 64/32 位 ROM；32 位虚拟机仅运行 32 位 ROM。</p>
+      <label class="field-label">Android 系统版本</label>
+      <div class="seg" id="verSeg">
+        <button class="seg-btn" data-ver="Android 7.1">Android 7.1</button>
+        <button class="seg-btn" data-ver="Android 9.0">Android 9.0</button>
+        <button class="seg-btn on" data-ver="Android 13.0">Android 13.0</button>
+        <button class="seg-btn" data-ver="Android 14.0">Android 14.0</button>
+        <button class="seg-btn" data-ver="custom">自定义</button>
+      </div>
+      <input class="input hidden" id="vmCustomVer" placeholder="自定义版本号，如 ET-OS 14.0">
+      <label class="field-label">机型模板</label>
+      <div class="seg" id="modelSeg">
+        <button class="seg-btn on" data-model="通用机型">通用机型</button>
+        <button class="seg-btn" data-model="游戏机型">游戏机型</button>
+        <button class="seg-btn" data-model="办公机型">办公机型</button>
+      </div>
+      <button class="btn btn-primary btn-lg" onclick="ETVM.wizardNext()">下一步</button>
+    </div>
+
+    <div class="wstep hidden" id="wstep2">
+      <div class="upload-card" id="romUploadCard" onclick="ETVM.pickRom()">
+        <div class="upload-icon">⤒</div>
+        <b>上传自己的 ROM 镜像</b>
+        <p>支持 .zip / .img / .iso，仅支持 Android 系统<br>上传后实时检测位数与系统匹配度</p>
+      </div>
+      <div class="hidden" id="romDetectArea">
+        <div class="section-title">实时检测结果</div>
+        <div class="detect-card" id="romDetectCard"></div>
+      </div>
+      <p class="hint" id="romHint"></p>
+      <button class="btn btn-ghost btn-lg" onclick="ETVM.openRomStore(1)">没有 ROM？去 ROM 商店下载 ›</button>
+      <div class="btn-row">
+        <button class="btn" onclick="ETVM.wizardBack()">上一步</button>
+        <button class="btn btn-primary" id="romNextBtn" disabled="" onclick="ETVM.wizardNext()">下一步</button>
+      </div>
+    </div>
+
+    <div class="wstep hidden" id="wstep3">
+      <div class="section-title">授权所需权限</div>
+      <button class="btn btn-ghost btn-sm" style="margin-bottom:10px" onclick="ETVM.grantAll()">一键全部授权</button>
+      <div class="perm-list">
+        <div class="perm-item" data-perm="storage">
+          <div><b>存储 &amp; 麦克风</b><i>读写 ROM / 应用数据，录制声音</i></div>
+          <button class="btn btn-sm" onclick="ETVM.grant('storage')">授权</button>
+        </div>
+        <div class="perm-item" data-perm="overlay">
+          <div><b>悬浮窗</b><i>虚拟机运行时悬浮控制球</i></div>
+          <button class="btn btn-sm" onclick="ETVM.grant('overlay')">授权</button>
+        </div>
+        <div class="perm-item" data-perm="install">
+          <div><b>安装未知应用</b><i>允许向虚拟机安装应用</i></div>
+          <button class="btn btn-sm" onclick="ETVM.grant('install')">授权</button>
+        </div>
+        <div class="perm-item" data-perm="notify">
+          <div><b>通知</b><i>虚拟机运行状态通知</i></div>
+          <button class="btn btn-sm" onclick="ETVM.grant('notify')">授权</button>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="ETVM.wizardBack()">上一步</button>
+        <button class="btn btn-primary" id="permNextBtn" disabled="" onclick="ETVM.wizardNext()">下一步</button>
+      </div>
+    </div>
+
+    <div class="wstep hidden" id="wstep4">
+      <div class="section-title">创建确认</div>
+      <div class="summary-card" id="wizardSummary"></div>
+      <button class="btn btn-primary btn-lg" onclick="ETVM.createVm()">正式创建</button>
+    </div>
+  </section>
+
+  <!-- 机器设置 -->
+  <section id="screen-settings" class="screen">
+    <header class="topbar">
+      <button class="btn-back" onclick="ETVM.backHome()">‹</button>
+      <div><h2 id="settingsTitle">虚拟机设置</h2><p class="sub">刷新率 · 开机动画 · 增强工具</p></div>
+    </header>
+
+    <label class="field-label">刷新频率：<b id="fpsVal">60</b> Hz</label>
+    <input type="range" id="fpsRange" min="60" max="120" step="1" value="60">
+    <div class="range-labels"><span>60</span><span>90</span><span>120</span></div>
+    <p class="hint">最高支持 120Hz，默认 60Hz。</p>
+
+    <label class="field-label">自定义开机动画</label>
+    <div class="seg" id="animSeg">
+      <button class="seg-btn on" data-anim="ET 经典">ET 经典</button>
+      <button class="seg-btn" data-anim="极光粒子">极光粒子</button>
+      <button class="seg-btn" data-anim="极简线条">极简线条</button>
+      <button class="seg-btn" data-anim="custom">自定义图片</button>
+    </div>
+    <p class="hint" id="animHint">已选择：ET 经典（内置动画）</p>
+
+    <label class="field-label">增强工具</label>
+    <div class="perm-list">
+      <label class="check-item"><input type="checkbox" id="optGapps"><span><b>安装谷歌三件套</b><i>Google 服务框架 / Play 商店</i></span></label>
+      <label class="check-item"><input type="checkbox" id="optXposed"><span><b>Xposed 框架</b><i>模块化系统增强</i></span></label>
+      <label class="check-item"><input type="checkbox" id="optRoot"><span><b>Root 工具</b><i>内置超级用户权限管理</i></span></label>
+    </div>
+
+    <label class="field-label">虚拟机版本号</label>
+    <input class="input" id="vmVersion" placeholder="例如：ET-OS 14.0 (2026.09)" value="ET-OS 14.0 (2026.09)">
+
+    <button class="btn btn-primary btn-lg" onclick="ETVM.saveSettings()">保存设置</button>
+  </section>
+
+  <!-- 开机 -->
+  <section id="screen-boot" class="screen">
+    <div class="boot-wrap" id="bootWrap"><div class="boot-logo" id="bootLogo" style="background: linear-gradient(135deg, rgb(124, 77, 255), rgb(0, 229, 255));">◆</div><div class="boot-bar"><div class="boot-progress" id="bootProgress" style="width: 100%;"></div></div><div class="boot-lines" id="bootLines"><div class="boot-line done">✓ 正在快速启动…</div><div class="boot-line done">✓ 正在加载系统镜像缓存…</div><div class="boot-line done">✓ 正在校验真机共享文件夹…</div><div class="boot-line done">✓ 正在应用 120Hz 刷新率…</div><div class="boot-line now">▸ 开机完成，进入系统</div></div></div>
+  </section>
+
+  <!-- 虚拟机桌面 -->
+  <section id="screen-vm" class="screen active">
+    <div class="vm-status" id="vmStatus">
+      <span id="vmClock">20:12</span>
+      <span class="vm-badge" id="vmInfoBadge">64 位 · 120Hz</span>
+    </div>
+    <div class="vm-wall">
+      <div class="vm-wall-grid"></div>
+      <div class="vm-greet" id="vmGreet">我的安卓机 · 一切皆可运行</div>
+      <div class="vm-share" onclick="ETVM.openFiles()">⇄ 真机共享文件夹已连接 · 点此打开</div>
+    </div>
+    <div class="app-grid" id="appGrid"><div class="app-item" onclick="ETVM.openSysApp('set')"><span class="tile tile-green">系</span><b>系统设置</b></div><div class="app-item" onclick="ETVM.openSysApp('browser')"><span class="tile tile-blue">E</span><b>ET 浏览器</b></div><div class="app-item" onclick="ETVM.openSysApp('files')"><span class="tile tile-orange">连</span><b>连接储存</b></div><div class="app-item" onclick="ETVM.openSysApp('camera')"><span class="tile tile-red">相</span><b>相机</b></div><div class="app-item" onclick="ETVM.openSysApp('gallery')"><span class="tile tile-purple">相</span><b>相册</b></div><div class="app-item" onclick="ETVM.openInstalled('com.et.browser')"><span class="tile tile-blue">E</span><b>ET 浏览器</b></div></div>
+    <div class="vm-dock">
+      <button class="dock-btn" onclick="ETVM.openStore()"><span class="tile tile-cyan">商</span><i>应用中心</i></button>
+      <button class="dock-btn" onclick="ETVM.openFiles()"><span class="tile tile-orange">夹</span><i>连接储存</i></button>
+      <button class="dock-btn" onclick="ETVM.toggleFloat()"><span class="tile tile-purple">球</span><i>悬浮控制</i></button>
+      <button class="dock-btn" onclick="ETVM.openDeveloper()"><span class="tile tile-green">开</span><i>开发者</i></button>
+      <button class="dock-btn" onclick="ETVM.shutdownVm()"><span class="tile tile-red">电</span><i>电源</i></button>
+    </div>
+  </section>
+
+  <!-- 应用中心 -->
+  <section id="screen-store" class="screen">
+    <header class="topbar">
+      <button class="btn-back" onclick="ETVM.gotoVm()">‹</button>
+      <div><h2>应用中心</h2><p class="sub" id="storeSub">虚拟机自带软件</p></div>
+    </header>
+
+    <div class="section-title">系统自带应用</div>
+    <div class="builtin-grid">
+      <div class="builtin-app"><span class="tile tile-blue">浏</span><b>ET 浏览器</b></div>
+      <div class="builtin-app"><span class="tile tile-orange">夹</span><b>连接储存</b></div>
+      <div class="builtin-app"><span class="tile tile-green">设</span><b>系统设置</b></div>
+      <div class="builtin-app"><span class="tile tile-red">相</span><b>相机</b></div>
+      <div class="builtin-app"><span class="tile tile-purple">册</span><b>相册</b></div>
+    </div>
+
+    <div class="section-title">已导入应用 <span class="count-badge" id="storeCount">0</span></div>
+    <div class="store-list" id="storeList"></div>
+
+    <button class="btn btn-primary btn-lg" onclick="ETVM.importFromDevice()">从真机导出应用</button>
+    <p class="hint">导出真机软件后会自动检测其位数兼容性，仅支持当前虚拟机位数的应用才会被安装。</p>
+  </section>
+
+  <!-- ROM 商店 -->
+  <section id="screen-romstore" class="screen">
+    <header class="topbar">
+      <button class="btn-back" onclick="ETVM.backHome()">‹</button>
+      <div><h2>ROM 商店</h2><p class="sub">官方精简系统镜像 · 单包 ≤400MB</p></div>
+      <button class="btn btn-sm" onclick="ETVM.refreshCatalog()">刷新列表</button>
+    </header>
+    <div class="romstore-list" id="romstoreList"></div>
+    <p class="hint" id="romstoreHint">下载完成后可直接"使用此 ROM"创建虚拟机；已下载的镜像会保留在本地。</p>
+  </section>
+
+  <!-- 虚拟机文件管理器（连接储存 / 真机共享） -->
+  <section id="screen-files" class="screen">
+    <header class="topbar">
+      <button class="btn-back" onclick="ETVM.gotoVm()">‹</button>
+      <div><h2 id="filesTitle">连接储存</h2><p class="sub" id="filesSub">单向连接 · 真机 → 虚拟机</p></div>
+      <button class="btn btn-sm" onclick="ETVM.sendFileFromDevice()">从真机发送</button>
+    </header>
+    <div class="seg" id="filesTabSeg">
+      <button class="seg-btn on" data-tab="vm">虚拟机存储</button>
+      <button class="seg-btn" data-tab="shared">真机共享</button>
+    </div>
+    <p class="hint" id="sharedPathHint"></p>
+    <div class="store-list" id="filesList"></div>
+  </section>
+
+  <!-- 开发者选项 -->
+  <section id="screen-developer" class="screen">
+    <header class="topbar">
+      <button class="btn-back" onclick="ETVM.gotoVm()">‹</button>
+      <div><h2>开发者选项</h2><p class="sub">虚拟机系统调试</p></div>
+    </header>
+    <div class="perm-list">
+      <label class="check-item"><input type="checkbox" id="devUsb" onchange="ETVM.devToast('USB 调试已'+(this.checked?'开启':'关闭'))"><span><b>USB 调试</b><i>虚拟机 ADB 调试通道</i></span></label>
+      <label class="check-item"><input type="checkbox" id="devPointer"><span><b>指针位置</b><i>显示触摸坐标</i></span></label>
+      <label class="check-item"><input type="checkbox" id="devFps" onchange="ETVM.devToast('显示刷新率已'+(this.checked?'开启':'关闭'))"><span><b>显示刷新率</b><i>FPS 悬浮显示</i></span></label>
+      <label class="check-item"><input type="checkbox" id="devFloat"><span><b>悬浮球演示</b><i>测试悬浮窗控制</i></span></label>
+    </div>
+    <div class="section-title">动画缩放</div>
+    <div class="seg" id="animScaleSeg">
+      <button class="seg-btn on" data-scale="0.5x">0.5x</button>
+      <button class="seg-btn" data-scale="1x">1x</button>
+      <button class="seg-btn" data-scale="1.5x">1.5x</button>
+    </div>
+    <button class="btn btn-primary btn-lg" onclick="ETVM.gotoVm()">返回虚拟机</button>
+  </section>
+
+  <!-- 关于页 -->
+  <section id="screen-about" class="screen">
+    <header class="topbar">
+      <button class="btn-back" onclick="ETVM.backHome()">‹</button>
+      <div><h2>关于 &amp; 权限</h2><p class="sub">设备信息与权限状态</p></div>
+    </header>
+    <div class="summary-card" id="aboutCard"></div>
+    <div class="section-title">权限状态</div>
+    <div class="perm-list" id="aboutPerms"></div>
+    <div class="section-title">说明</div>
+    <div class="note-card">
+      本应用为 <b>ET虚拟机 v2.0.0</b>，支持创建 32/64 位 Android 虚拟机，上传 ROM 实时检测位数与匹配度（不支持 Windows），内置 ROM 商店（≤400MB 官方精简镜像）、谷歌三件套 / Xposed / Root 开关、120Hz 刷新率、自定义开机动画，以及真机↔虚拟机单向共享文件夹（连接储存）。© ET 协会。
+    </div>
+  </section>
+
+  <!-- 真机应用选择弹层 -->
+  <div class="overlay hidden" id="appPickerOverlay">
+    <div class="sheet">
+      <div class="sheet-head"><b>选择真机应用</b><button class="btn-back" onclick="ETVM.closePicker()">×</button></div>
+      <input class="input" id="appSearch" placeholder="搜索应用…" oninput="ETVM.filterApps()">
+      <div class="sheet-list" id="appList"></div>
+    </div>
+  </div>
+
+  <!-- 兼容性结果弹层 -->
+  <div class="overlay hidden" id="compatOverlay">
+    <div class="dialog">
+      <div class="dialog-title" id="compatTitle">兼容性检测</div>
+      <div class="dialog-body" id="compatBody"></div>
+      <div class="dialog-actions">
+        <button class="btn" onclick="ETVM.closeCompat()">关闭</button>
+        <button class="btn btn-primary hidden" id="compatInstallBtn" onclick="ETVM.confirmInstall()">安装到虚拟机</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 文件查看弹层 -->
+  <div class="overlay hidden" id="viewerOverlay">
+    <div class="dialog dialog-wide">
+      <div class="dialog-title" id="viewerTitle">文件查看</div>
+      <div class="dialog-body viewer-body" id="viewerBody"></div>
+      <div class="dialog-actions">
+        <button class="btn btn-primary" onclick="ETVM.closeViewer()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 全局 toast -->
+  <div class="toast hidden" id="toast"></div>
+</div>
+<script src="js/test-bridge.js"></script><div id="testlog" style="position: fixed; bottom: 0px; left: 0px; right: 0px; background: rgb(0, 0, 0); color: rgb(0, 255, 0); font: 10px monospace; padding: 2px; z-index: 999;"><div>state=bootquick</div><div>drive done</div><div>DIAG quick=true</div></div>
+<script src="js/app.js"></script>
+
+
+</body></html>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#e60b0f1a"
+    android:padding="10dp">
+
+    <TextView
+        android:id="@+id/fb_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ET 悬浮控制"
+        android:textColor="#00e5ff"
+        android:textSize="13sp"
+        android:paddingBottom="6dp"/>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button android:id="@+id/fb_home" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="主页" android:textSize="12sp" android:textColor="#ffffff"
+            android:background="@android:color/transparent"/>
+        <Button android:id="@+id/fb_back" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="返回" android:textSize="12sp" android:textColor="#ffffff"
+            android:background="@android:color/transparent"/>
+        <Button android:id="@+id/fb_menu" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="菜单" android:textSize="12sp" android:textColor="#ffffff"
+            android:background="@android:color/transparent"/>
+        <Button android:id="@+id/fb_volup" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="音量+" android:textSize="12sp" android:textColor="#ffffff"
+            android:background="@android:color/transparent"/>
+        <Button android:id="@+id/fb_voldown" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="音量-" android:textSize="12sp" android:textColor="#ffffff"
+            android:background="@android:color/transparent"/>
+        <Button android:id="@+id/fb_close" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="关闭" android:textSize="12sp" android:textColor="#ff6b6b"
+            android:background="@android:color/transparent"/>
+    </LinearLayout>
+</LinearLayout>
