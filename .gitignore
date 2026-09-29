@@ -1,3 +1,9 @@
+dist-win/
+win-jre/
+pc-build/
+libs/
+pc-dist/
+ETVM-Windows-x64.zip
 android/
 build/
 keystore/
