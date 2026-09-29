@@ -104,7 +104,7 @@
 </head>
 <body>
 <nav><div class="wrap nav">
-  <div class="logo"><div class="chip">ET</div><span>ET虚拟机<b> v3.1.1</b></span></div>
+  <div class="logo"><div class="chip">ET</div><span>ET虚拟机<b> v3.2.0</b></span></div>
   <div class="links">
     <a href="#features">功能</a><a href="#os">内置系统</a><a href="#store">ROM 商店</a>
     <a href="#security">安全防注入</a><a href="#steps">使用步骤</a><a href="#versions">版本</a><a href="#faq">常见问题</a>
@@ -116,8 +116,8 @@
   <h1>ET<b>虚拟机</b></h1>
   <p class="tag">纯 Java 原生实现 · 安卓 APK + Windows 电脑版（EXE）· 打开即用 · 无欢迎动画 · 启动飞快</p>
   <div class="badges">
-    <span class="badge">内置 ET-OS 7.0（32 位，不可删除）</span>
-    <span class="badge">ROM 商店 · 实时位数检测</span>
+    <span class="badge">内置安卓 4.4 + ET-OS 7.0 双系统（不可删除）</span>
+    <span class="badge">ROM 商店 · Android 4.4→16 全系 · 实时下载进度</span>
     <span class="badge">连接储存 · 单向共享</span>
     <span class="badge">中/英/日三语言 · 5 套主题</span>
     <span class="badge">检查更新 · 软件内下载安装</span>
@@ -125,18 +125,19 @@
     <span class="badge">悬浮窗控制 · 最高 120 帧</span>
   </div>
   <div class="btns">
-    <a class="btn btn-p" href="#download">↓ 下载 APK v3.1.1</a>
+    <a class="btn btn-p" href="#download">↓ 下载 APK v3.2.0</a>
     <a class="btn btn-g" href="https://github.com/ETQWFD/ETVM" target="_blank" rel="noopener">GitHub 源码仓库</a>
   </div>
-  <div class="ver">当前版本 <code>3.1.1</code> · 包名 <code>com.et.vm</code> · 目标 SDK 34（Android 13/14 权限兼容）</div>
+  <div class="ver">当前版本 <code>3.2.0</code> · 包名 <code>com.et.vm</code> · 目标 SDK 34（Android 13/14 权限兼容）</div>
 </div>
 
 <section id="features"><div class="wrap">
   <div class="st"><i></i><div><h2>核心功能</h2><p>每项功能都真实可操作，拒绝“演示式模拟”</p></div></div>
   <div class="grid">
     <div class="card"><div class="ic">🧠</div><h3>纯 Java 原生引擎</h3><p>不再使用 WebView/网页内核。欢迎页、首页、创建向导、设置、开机、桌面、应用中心全部为 Java 原生界面。</p></div>
-    <div class="card"><div class="ic">📦</div><h3>内置 ET-OS 7.0</h3><p>打包内置 32 位 Android 7.0 精简系统（未压缩约 4MB，随包内置且不可删除），装完软件即可直接从主界面进入系统。</p></div>
-    <div class="card"><div class="ic">🛒</div><h3>ROM 商店</h3><p>内置真实可下载的 32 位 ROM 镜像（SourceForge 官方源，均 ≤400MB），原生读取目录，刷新列表不再失败。</p></div>
+    <div class="card"><div class="ic">📦</div><h3>内置双系统</h3><p>打包内置 32 位 <b>Android 4.4 KitKat</b> 与 <b>ET-OS 7.0</b> 精简系统（各 ≤6MB，随包内置且不可删除）。创建虚拟机时【系统来源】直接选用，创建即用、直接进桌面。</p></div>
+    <div class="card"><div class="ic">🛒</div><h3>ROM 商店 · 全系目录</h3><p><b>Android 4.4 → 16 全系</b>，32/64 位分别标注：4.4/5.1/6.0（32 位）与 7.1/8.1/9.0（64 位）官方镜像直链，10~16 镜像整理中。原生读取目录，刷新列表不再失败。</p></div>
+    <div class="card"><div class="ic">📊</div><h3>实时下载进度</h3><p>下载 ROM 全程可见：<b>进度条 + 百分比 + 已下载/总大小 + 实时速度</b>，每 ~0.7 秒刷新，不再黑盒等待、不怕断线误判。</p></div>
     <div class="card"><div class="ic">🔍</div><h3>实时位数检测</h3><p>上传 ROM / 导入真机 APK 时，纯 Java 引擎流式解析 PE/ISO/ZIP 结构，检测 32 位 / 64 位并实时判定匹配度。</p></div>
     <div class="card"><div class="ic">🔗</div><h3>连接储存</h3><p>虚拟机 ↔ 真机单向共享文件夹。真机可发送文件进共享目录，虚拟机内可查看、复制到虚拟机存储。</p></div>
     <div class="card"><div class="ic">🎛️</div><h3>悬浮窗控制</h3><p>桌面右下角悬浮控制球，可拖动；面板提供 主页/返回/菜单/音量 按键，可自由开启与关闭。</p></div>
@@ -149,7 +150,7 @@
 </div></section>
 
 <section id="os"><div class="wrap">
-  <div class="st"><i></i><div><h2>内置系统 · ET-OS 7.0</h2><p>32 位 Android 7.0 精简系统，首次启动自动安装，之后一键直进桌面</p></div></div>
+  <div class="st"><i></i><div><h2>内置系统 · 安卓 4.4 + ET-OS 7.0</h2><p>双系统随包携带 · 创建虚拟机时直接选用 · 创建即用，无需等待安装</p></div></div>
   <div class="osbox">
     <div class="os">
       <div class="phone">
@@ -158,11 +159,11 @@
         <div class="bar">◉ ● ◯</div>
       </div>
       <ul>
-        <li><b>系统版本：</b>Android 7.0（Nougat）</li>
-        <li><b>架构位数：</b>32 位（x86 / armeabi-v7a 兼容）</li>
-        <li><b>镜像大小：</b>未压缩约 4MB（≤100MB 约束）</li>
-        <li><b>首次启动：</b>自动解包安装 ROM，完成后直达桌面</li>
-        <li><b>再次启动：</b>无需等待，直接进入系统</li>
+        <li><b>系统一：</b>Android 4.4 KitKat（32 位精简）</li>
+        <li><b>系统二：</b>ET-OS 7.0（32 位精简）</li>
+        <li><b>镜像大小：</b>各 ≤6MB（≤100MB 约束）</li>
+        <li><b>创建即用：</b>选中内置系统后创建虚拟机，直接进入系统</li>
+        <li><b>不可删除：</b>内置系统虚拟机不受删除按钮影响</li>
         <li><b>自带应用：</b>ET 浏览器 / 连接储存 / 系统设置 / 相机 / 相册</li>
       </ul>
     </div>
@@ -185,13 +186,15 @@
 </div></section>
 
 <section id="store"><div class="wrap">
-  <div class="st"><i></i><div><h2>ROM 商店</h2><p>真实下载源 · 原生目录读取 · 刷新列表不再失败 · 镜像均 ≤400MB</p></div></div>
+  <div class="st"><i></i><div><h2>ROM 商店 · v3.2.0</h2><p>Android 4.4 → 16 全系目录 · 32/64 位标注 · 下载实时进度 · 内置系统免下载</p></div></div>
   <div class="roms">
-    <div class="rom"><div class="n">Android 4.4 KitKat</div><div class="m">android-x86 4.4-r1 · x86 32 位</div><span class="s">32 位 · 343MB ✓</span></div>
-    <div class="rom"><div class="n">Android 5.1 Lollipop</div><div class="m">android-x86 5.1-rc1 · x86 32 位</div><span class="s">32 位 · 358MB ✓</span></div>
-    <div class="rom"><div class="n">ET-OS 7.0（内置）</div><div class="m">随 APK 打包 · 32 位</div><span class="s">32 位 · 内置 ✓</span></div>
+    <div class="rom"><div class="n">内置 Android 4.4 KitKat</div><div class="m">随包内置 · 已安装好 · 创建即用</div><span class="s">32 位 · 内置 ✓</span></div>
+    <div class="rom"><div class="n">内置 ET-OS 7.0</div><div class="m">随包内置 · 已安装好 · 创建即用</div><span class="s">32 位 · 内置 ✓</span></div>
+    <div class="rom"><div class="n">Android 4.4 / 5.1 / 6.0</div><div class="m">android-x86 官方镜像 · 32 位</div><span class="s">32 位 · 官方 ✓</span></div>
+    <div class="rom"><div class="n">Android 7.1 / 8.1 / 9.0</div><div class="m">android-x86 官方镜像 · 64 位</div><span class="s">64 位 · 官方 ✓</span></div>
+    <div class="rom"><div class="n">Android 10 → 16</div><div class="m">社区 x86_64 大镜像 · 整理上架中</div><span class="s">64 位 · 整理中</span></div>
   </div>
-  <p style="color:var(--sub);font-size:13px;margin-top:18px;">下载完成后可点击“使用此 ROM”直接进入创建向导，自动带入位数与镜像，无需手动选择。列表刷新改为原生读取 assets 目录，彻底修复 WebView 拦截 file:// 导致的“列表刷新失败”。</p>
+  <p style="color:var(--sub);font-size:13px;margin-top:18px;">下载带 <b>实时进度</b>（百分比 / 已下载 / 总大小 / 速度，进度条 ~0.7s 刷新）；下载完成后可点击“使用此 ROM”直接进入创建向导。内置系统无需下载，创建虚拟机时在【系统来源】直接选用。列表刷新为原生读取 assets 目录，彻底修复“列表刷新失败”。</p>
 </div></section>
 
 <section id="security"><div class="wrap">
@@ -200,8 +203,8 @@
     <h3 style="font-size:16px;">1 · 运行时签名校验</h3>
     <p style="color:var(--sub);font-size:13.5px;margin-top:6px;">App 启动时读取自身 APK 签名（SHA-256）并与内置白名单比对，不一致即判定为被重打包/注入，进入受限模式并提示。</p>
     <div class="fp">安卓 APK 签名 SHA-256：4a7eee440f0a87274aff7ddbf690d9c8f5422826e71b0234a18727c0950d6a6b</div>
-    <div class="fp">Windows EXE SHA-256：ff43a91674e7deedea04e28d5296fdab1f96e985d6152537e8b66d6445457ead</div>
-    <div class="fp">Windows 便携包 SHA-256：48b7fe3f078beb6f7b10bc633d12d2d825d52974c7dfba866f73f2c3768493f3</div>
+    <div class="fp">Windows EXE SHA-256：ced1617dc93e7bf5dc8042dafdeda2b167d39d8c518220254af990e686bf440d</div>
+    <div class="fp">Windows 便携包 SHA-256：94d856d6347882739945a440c9f25e56df0e792985c25484c6a305378926ce34</div>
     <div class="kv">
       <div><b>签名证书</b><span>CN=ET, OU=ET协会, O=ET, L=Meizhou, ST=Guangdong, C=CN</span></div>
       <div><b>密钥库</b><span>RSA-2048 · 有效期 10000 天 · 仅随交付物提供</span></div>
@@ -226,7 +229,8 @@
   <div class="st"><i></i><div><h2>版本历史</h2><p>v3.0.0 为原生重写大版本</p></div></div>
   <table>
     <tr><th>版本</th><th>说明</th><th>状态</th></tr>
-    <tr><td>v3.1.0</td><td>修复进入首页卡死/闪退（界面缓存秒开 + 崩溃兜底 + 内置镜像后台解包）；中/英/日三语言；5 套主题；检查更新（软件内下载安装）；内置 ET-OS 7.0 不可删除；<b>新增 Windows 电脑版 v3.1.1（ETVM.exe）</b></td><td class="t">✓ 当前</td></tr>
+    <tr><td>v3.2.0</td><td><b>ROM 商店重构</b>：下载实时进度（百分比/速度/进度条）；Android 4.4→16 全系目录（32/64 位标注）；<b>新增内置 Android 4.4</b>（与 ET-OS 7.0 双内置，创建虚拟机直接选用、创建即用）；修复商店界面混乱；双端同步</td><td class="t">✓ 当前</td></tr>
+    <tr><td>v3.1.0</td><td>修复进入首页卡死/闪退（界面缓存秒开 + 崩溃兜底 + 内置镜像后台解包）；中/英/日三语言；5 套主题；检查更新（软件内下载安装）；内置 ET-OS 7.0 不可删除；<b>新增 Windows 电脑版（ETVM.exe）</b></td><td>已并入 v3.2</td></tr>
     <tr><td>v3.0.0</td><td>纯 Java 原生重写（无 WebView）；内置 ET-OS 7.0 32 位；签名防注入；授权码；ROM 商店原生刷新；连接储存；悬浮窗控制</td><td>已并入 v3.1</td></tr>
     <tr><td>v2.1.0</td><td>ROM 商店列表刷新修复（原生读取 assets）</td><td>已并入 v3</td></tr>
     <tr><td>v2.0.0</td><td>界面重做、权限修复、真实 ROM 商店、连接储存</td><td>已并入 v3</td></tr>
@@ -239,15 +243,15 @@
   <div class="grid" style="grid-template-columns:1fr 1fr;max-width:860px;margin:0 auto;">
     <div class="card" style="text-align:center;">
       <div class="ic" style="margin:0 auto 12px;">📱</div>
-      <h3>安卓版 v3.1.1（APK）</h3>
-      <p>com.et.vm · Android 7.0+<br>内置 ET-OS 7.0 · 三语言 · 主题 · 检查更新</p>
-      <a class="btn btn-p" style="margin-top:16px;" href="https://github.com/ETQWFD/ETVM/releases/download/v3.1.1/ETVM-v3.1.1.apk" target="_blank" rel="noopener">↓ 下载 APK</a>
+      <h3>安卓版 v3.2.0（APK）</h3>
+      <p>com.et.vm · Android 7.0+<br>内置安卓4.4+ET-OS 7.0 · 商店全系目录 · 实时下载进度</p>
+      <a class="btn btn-p" style="margin-top:16px;" href="https://github.com/ETQWFD/ETVM/releases/download/v3.2.0/ET虚拟机-v3.2.0.apk" target="_blank" rel="noopener">↓ 下载 APK</a>
     </div>
     <div class="card" style="text-align:center;">
       <div class="ic" style="margin:0 auto 12px;">💻</div>
-      <h3>Windows 电脑版 v3.1.1</h3>
+      <h3>Windows 电脑版 v3.2.0</h3>
       <p>ETVM.exe 便携版 · 内置 Java 运行环境<br>Windows 10/11 x64 · 约 42MB</p>
-      <a class="btn btn-p" style="margin-top:16px;" href="https://github.com/ETQWFD/ETVM/releases/download/v3.1.1/ETVM-Windows-x64.zip" target="_blank" rel="noopener">↓ 下载 Windows 版</a>
+      <a class="btn btn-p" style="margin-top:16px;" href="https://github.com/ETQWFD/ETVM/releases/download/v3.2.0/ETVM-Windows-x64.zip" target="_blank" rel="noopener">↓ 下载 Windows 版</a>
     </div>
   </div>
   <p style="color:var(--sub);font-size:13px;margin-top:16px;text-align:center;">微信内直接点击即可下载（GitHub Pages HTTPS）。</p>
@@ -257,6 +261,9 @@
   <div class="st"><i></i><div><h2>常见问题</h2></div></div>
   <details><summary>微信打开官网显示“无法访问”？</summary><p>官网部署在 GitHub Pages，提供 HTTPS（*.github.io），微信内置浏览器通常可直接打开。若出现提示，请复制链接到系统浏览器打开一次，或点击右上角“在浏览器打开”。本页所有资源均为 https 直链，无被微信拦截的域名。</p></details>
   <details><summary>为什么不用网页 / WebView 实现？</summary><p>v3.0.0 起虚拟机界面全部改为 Java 原生实现，不依赖网页内核。原生界面更流畅、权限申请更可靠、文件系统访问不受 WebView 限制，ROM 商店刷新等历史问题一并根治。</p></details>
+  <details><summary>ROM 商店下载怎么没有进度？</summary><p>v3.2.0 已重构：下载全程显示实时进度（进度条 + 百分比 + 已下载/总大小 + 速度，约 0.7 秒刷新），下载失败也会明确提示 HTTP 状态码，不再黑盒等待。电脑版同步支持。</p></details>
+  <details><summary>商店里怎么没有 Android 10~16？</summary><p>官方 android-x86 项目只到 Android 9.0；Android 10+ 为社区 x86_64 发行版（体积 >1GB，超出精简镜像约束）。商店已为 10~16 全部建卡并标注“镜像整理中”，4~9 官方镜像与两款内置系统可直接使用。</p></details>
+  <details><summary>内置安卓4.4怎么用？</summary><p>创建虚拟机时在【系统来源】选择“内置安卓4.4”（或“内置安卓7.0”），无需上传、无需下载、无需等待安装，创建完成后直接启动进入系统，且该虚拟机不可删除。</p></details>
   <details><summary>权限申请为什么在 Android 13+ 弹不出来？</summary><p>本版本针对 Android 13/14 做了媒体与通知权限兼容（READ_MEDIA_* / POST_NOTIFICATIONS），创建向导内可逐项申请并实时显示授权状态；悬浮窗权限需在系统设置中手动开启（App 会一键跳转）。</p></details>
   <details><summary>手机版之前“运行不了/进入首页卡死”修好了吗？</summary><p>v3.1.0 已修复：① 内置镜像改为后台解包，不再阻塞首屏；② 界面缓存，重复进入秒开；③ 全局崩溃兜底——任何异常不再闪退，写入 crash.log 并自动回到首页。若仍有问题，把 crash.log 发给我们即可。</p></details>
   <details><summary>电脑版怎么用？</summary><p>下载 Windows 版压缩包，解压后双击 ETVM.exe 即可（内置 Java 运行环境，无需安装）。与手机版功能一致：内置 ET-OS 7.0、ROM 商店、连接储存、三语言、主题、检查更新。</p></details>

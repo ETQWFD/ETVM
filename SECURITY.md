@@ -1,4 +1,4 @@
-# 密钥与防注入说明 · ET虚拟机 v3.1.1
+# 密钥与防注入说明 · ET虚拟机 v3.2.0
 
 **ET协会出品 · 版权所有 © ET**
 
@@ -16,7 +16,7 @@
 | 证书 SHA-1 | `211bcc81ab8a65e31a378e379afbcd570e5f7e76` |
 | 有效期 | 10000 天 |
 | 密钥库文件 | `keystore/et.keystore`（storepass / keypass：`etvm123`） |
-| APK 版本 | 3.1.1（versionCode 311） |
+| APK 版本 | 3.2.0（versionCode 320） |
 | APK 文件 SHA-256 | 以最新 Release 实际文件为准（官网公示） |
 
 ## 2. 防注入机制
@@ -39,7 +39,7 @@
 
 ```bash
 # 验证 APK 签名
-apksigner verify --print-certs ET虚拟机-v3.0.0.apk
+apksigner verify --print-certs ET虚拟机-v3.2.0.apk
 
 # 检查是否被二次签名（对比证书 SHA-256 是否仍为上述值）
 ```
@@ -65,6 +65,6 @@ apksigner verify --print-certs ET虚拟机-v3.0.0.apk
 |---|---|
 | 程序 | `ETVM.exe`（launch4j 封装，内含 ETVM-pc.jar） |
 | 校验机制 | 同目录 `hash.txt` 存储程序 SHA-256；启动时实时比对，不一致即拒绝运行 |
-| EXE SHA-256 | `ff43a91674e7deedea04e28d5296fdab1f96e985d6152537e8b66d6445457ead` |
-| 便携包 SHA-256 | `48b7fe3f078beb6f7b10bc633d12d2d825d52974c7dfba866f73f2c3768493f3` |
+| EXE SHA-256 | `ced1617dc93e7bf5dc8042dafdeda2b167d39d8c518220254af990e686bf440d` |
+| 便携包 SHA-256 | `94d856d6347882739945a440c9f25e56df0e792985c25484c6a305378926ce34` |
 | 说明 | 改动 EXE 或注入 jar 都会导致哈希变化；官网公示哈希可自行核对 |

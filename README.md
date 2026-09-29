@@ -1,31 +1,31 @@
-# ET虚拟机 v3.1.1
+# ET虚拟机 v3.2.0
 
 **ET协会出品 · 版权所有 © ET**
 
 纯 Java 原生实现的安卓虚拟机。不再依赖网页 / WebView 内核，一切功能真实可用。
 
 - 包名：`com.et.vm`
-- 版本：3.1.1（versionCode 311）
+- 版本：3.2.0（versionCode 320）
 - 目标 SDK：34（Android 13 / 14 权限兼容）
 - 最小系统：Android 7.0（API 24）
 - 官网：https://ETQWFD.github.io/ETVM/
 
 ---
 
-## 一、新版本亮点（v3.1.1）
+## 一、新版本亮点（v3.2.0）
 
 | 项目 | 说明 |
 |---|---|
+| ROM 商店重构 | **下载实时进度**（进度条 + 百分比 + 已下载/总大小 + 速度，~0.7s 刷新，失败明确报 HTTP 码）；**Android 4.4 → 16 全系目录**，32/64 位标注 |
+| 内置双系统 | 随包内置 **Android 4.4 KitKat** + **ET-OS 7.0**（各 ≤6MB、已安装好、不可删除）；创建虚拟机【系统来源】直接选用，**创建即用** |
 | 崩溃修复 | 进入首页偶发崩溃（child already has a parent）根治：屏幕切换防重复挂载；内置镜像改后台线程解包 |
 | 直进首页 | 去掉欢迎动画，打开 App 直接进入首页（手机版/电脑版一致），启动飞快 |
 | 三语言 | 设置内切换 中文 / English / 日本語 |
 | 多主题 | 5 套暗色主题：深空黑 / 深海蓝 / 翡翠绿 / 暗夜紫 / 落日橙 |
 | 检查更新 | 检测 GitHub 最新 Release → 询问 → 软件内下载 → 申请安装权限 → 直接安装（安卓）；电脑版下载便携包 |
-| 内置系统 | 内置 ET-OS 7.0 已安装好且**不可删除**，创建即用 |
-| Windows 版 | 电脑版 ETVM.exe（纯 Java Swing 原生，内置 Java 运行环境，hash.txt 防注入） |
+| Windows 版 | 电脑版 ETVM.exe（纯 Java Swing 原生，内置 Java 运行环境，hash.txt 防注入），商店/向导/进度与安卓完全一致 |
 | 原生界面 | 欢迎页 / 首页 / 创建向导 / 设置 / 开机 / 桌面 / 应用中心 / ROM 商店 / 连接储存 / 开发者 / 关于，全部 Java 原生实现，无 WebView |
-| 内置系统 | 随 APK 内置 **32 位 ET-OS 7.0** 精简镜像（未压缩约 4MB，已安装好、不可删除），创建即用、启动飞快 |
-| ROM 商店 | 原生读取 assets 目录 + 实时源检查，**列表刷新不再失败**；内置 2 条真实 32 位 ROM（SourceForge 官方源，≤400MB） |
+| ROM 商店 | 原生读取 assets 目录 + 实时源检查，**列表刷新不再失败**；4~9 官方镜像（SourceForge 直链）+ 10~16 整理中 + 2 款内置 |
 | 实时检测 | 纯 Java 引擎解析 PE / ISO / ZIP，检测 ROM 位数（32 / 64）并判定匹配；APK 导入自动检测 ABI 兼容 |
 | 连接储存 | 真机 → 虚拟机单向共享文件夹，虚拟机内可查看、复制文件（无法反向删除真机文件） |
 | 防注入 | 运行时校验 APK 签名 SHA-256，被重打包 / 注入即进入受限模式；开发者页展示授权码与签名状态 |
@@ -38,7 +38,7 @@
 
 ### 安卓版
 
-1. 从官网 / Release 下载 `ETVM-v3.1.1.apk`。
+1. 从官网 / Release 下载 `ET虚拟机-v3.2.0.apk`。
 2. 安装时允许「安装未知来源应用」。
 3. 打开 App，欢迎页会展示设备检测与防注入状态。
 
@@ -117,7 +117,7 @@
 
 ```bash
 # 依赖：Android SDK build-tools 34、JDK 17、python3、launch4j
-bash build.sh          # 安卓 APK：ET虚拟机-v3.1.1.apk
+bash build.sh          # 安卓 APK：ET虚拟机-v3.2.0.apk
 javac -encoding UTF-8 -cp libs/json.jar -d pc-build src-pc/com/et/vm/ETVMPC.java src/com/et/vm/RomDetect.java src/com/et/vm/License.java
 jar cfm pc-dist/ETVM-pc.jar pc-manifest.mf -C pc-build .
 java -jar launch4j.jar pc-dist/l4j.xml   # 生成 ETVM.exe
