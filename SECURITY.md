@@ -17,6 +17,7 @@
 | 有效期 | 10000 天 |
 | 密钥库文件 | `keystore/et.keystore`（storepass / keypass：`etvm123`） |
 | APK 版本 | 3.0.0（versionCode 300） |
+| APK 文件 SHA-256 | `e840075cf7ad830a2c2ced6c7e6d1c54067ebf3e526686ecd01eb21402a74902` |
 
 ## 2. 防注入机制
 
