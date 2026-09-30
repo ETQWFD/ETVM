@@ -7,7 +7,7 @@ JAVAC=/home/user/jdk-17.0.20.1+1/bin/javac
 KEYTOOL=/home/user/jdk-17.0.20.1+1/bin/keytool
 ROOT=/home/user/Doubao/chats/38444626514490626/ETVM
 OUT=$ROOT/build
-APPNAME="ET虚拟机-v3.2.0.apk"
+APPNAME="ET虚拟机-v3.3.0.apk"
 KS=$ROOT/keystore/et.keystore
 
 echo "== 1/7 编译资源 =="

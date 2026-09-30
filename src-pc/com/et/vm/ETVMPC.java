@@ -29,7 +29,7 @@ public class ETVMPC {
     /* ===== 防注入：本 jar 的 SHA-256（构建后回填，两遍编译） ===== */
     static String selfHash = "";
     static boolean selfOk = true;
-    static final String APP_VER = "3.2.0";
+    static final String APP_VER = "3.3.0";
     static final String REPO = "ETQWFD/ETVM";
 
     /* 配色（随主题切换） */
@@ -711,6 +711,13 @@ public class ETVMPC {
         return p;
     }
     static void startBoot() {
+        /* 真实 ROM（ISO）：QEMU 真虚拟化启动，不再模拟 */
+        JSONObject rom = curVm.optJSONObject("rom");
+        String rp = rom == null ? "" : rom.optString("path", "");
+        if (!rp.isEmpty() && new File(rp).exists() && rp.toLowerCase().endsWith(".iso")) {
+            launchQemu();
+            return;
+        }
         show("boot");
         JProgressBar bar = (JProgressBar) screens.get("boot").getClientProperty("bar");
         JLabel msg = (JLabel) screens.get("boot").getClientProperty("msg");
@@ -729,6 +736,145 @@ public class ETVMPC {
                 }
             });
         }}.start();
+    }
+
+    /* ===== QEMU 真虚拟化引擎（光速虚拟机级） ===== */
+    static File appDir() {
+        File d = new File(System.getProperty("user.dir"));
+        if (!new File(d, "qemu/qemu-system-x86_64.exe").exists()) {
+            try {
+                File j = new File(ETVMPC.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+                d = j.getParentFile();
+            } catch (Exception ignored) {}
+        }
+        return d;
+    }
+    static Process qemuProc;
+    static void launchQemu() {
+        File qDir = new File(appDir(), "qemu");
+        File qemu = new File(qDir, "qemu-system-x86_64.exe");
+        File img = new File(qDir, "qemu-img.exe");
+        if (!qemu.exists()) {
+            JOptionPane.showMessageDialog(win, "缺少虚拟化引擎 qemu-system-x86_64.exe，请重新下载完整包。", "ET虚拟机", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        JSONObject rom = curVm.optJSONObject("rom");
+        File iso = new File(rom.optString("path", ""));
+        if (!iso.exists()) { JOptionPane.showMessageDialog(win, "ROM 镜像不存在：" + iso.getAbsolutePath()); return; }
+        File disk = new File(dataDir, "vm-" + curVm.optLong("id", 0) + ".img");
+        try {
+            if (!disk.exists()) {
+                ProcessBuilder pb = new ProcessBuilder(img.getAbsolutePath(), "create", "-f", "qcow2", disk.getAbsolutePath(), "16G");
+                Process p = pb.redirectErrorStream(true).start();
+                p.waitFor();
+            }
+            boolean bootC = curVm.optBoolean("qemuBootC", false);
+            java.util.List<String> cmd = new java.util.ArrayList<>();
+            cmd.add(qemu.getAbsolutePath());
+            cmd.add("-name"); cmd.add("ET虚拟机 - " + curVm.optString("name", "Android"));
+            cmd.add("-m"); cmd.add("2048");
+            cmd.add("-smp"); cmd.add("2");
+            cmd.add("-cpu"); cmd.add("qemu64");
+            cmd.add("-vga"); cmd.add("std");
+            cmd.add("-usb"); cmd.add("-device"); cmd.add("usb-tablet");
+            cmd.add("-boot"); cmd.add("order=" + (bootC ? "c" : "d") + ",menu=on");
+            cmd.add("-cdrom"); cmd.add(iso.getAbsolutePath());
+            cmd.add("-hda"); cmd.add(disk.getAbsolutePath());
+            cmd.add("-netdev"); cmd.add("user,id=n1,hostfwd=tcp::15555-:5555");
+            cmd.add("-device"); cmd.add("e1000,netdev=n1");
+            cmd.add("-rtc"); cmd.add("base=localtime");
+            ProcessBuilder pb2 = new ProcessBuilder(cmd);
+            pb2.directory(appDir());
+            qemuProc = pb2.start();
+            curVm.put("lastBoot", System.currentTimeMillis());
+            saveVms();
+            new Thread(() -> {
+                try {
+                    if (!bootC) {
+                        JOptionPane.showMessageDialog(win, "已启动 QEMU 虚拟化引擎（首次启动）：\n请在弹出的窗口中按 android-x86 安装向导完成系统安装。\n安装完成并进入系统后，ET文件传输 会自动安装。");
+                    }
+                    /* adb 自动安装 ET文件传输 */
+                    File adb = new File(qDir, "adb.exe");
+                    if (adb.exists()) {
+                        int tries = 0;
+                        while (tries++ < 90) {
+                            Thread.sleep(2000);
+                            if (runAdb(adb, "connect", "127.0.0.1:15555")) {
+                                if (!runAdb(adb, "-s", "127.0.0.1:15555", "wait-for-device")) continue;
+                                Thread.sleep(3000);
+                                File apk = new File(new File(appDir(), "storage"), "com.et.storage.apk");
+                                if (apk.exists()) runAdb(adb, "-s", "127.0.0.1:15555", "install", "-r", apk.getAbsolutePath());
+                                if (!curVm.optBoolean("qemuBootC", false)) {
+                                    curVm.put("qemuBootC", true);
+                                    saveVms();
+                                }
+                                /* 单向文件同步：电脑 → 虚拟机 /sdcard/Download/os */
+                                watchShared(adb);
+                                break;
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }).start();
+            /* 电脑剪贴板 → sharedDir/clipboard.txt（watch 会推给虚拟机） */
+            startClipWatch();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(win, "虚拟化启动失败：" + ex.getMessage(), "ET虚拟机", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    static boolean runAdb(File adb, String... args) {
+        try {
+            java.util.List<String> cmd = new java.util.ArrayList<>();
+            cmd.add(adb.getAbsolutePath()); cmd.addAll(java.util.Arrays.asList(args));
+            Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();
+            String o = new String(p.getInputStream().readAllBytes(), "UTF-8");
+            return o.contains("connected") || o.contains("device") || o.contains("Success") || o.contains("adb");
+        } catch (Exception e) { return false; }
+    }
+    static void watchShared(File adb) {
+        new Thread(() -> {
+            java.util.Map<String, Long> seen = new java.util.HashMap<>();
+            try {
+                runAdb(adb, "-s", "127.0.0.1:15555", "shell", "mkdir", "-p", "/sdcard/Download/os");
+            } catch (Exception ignored) {}
+            while (true) {
+                try {
+                    File[] fs = sharedDir.listFiles();
+                    if (fs != null) for (File f : fs) {
+                        if (!f.isFile()) continue;
+                        Long prev = seen.get(f.getName());
+                        long cur = f.length() + f.lastModified();
+                        if (prev == null || prev != cur) {
+                            seen.put(f.getName(), cur);
+                            try {
+                                runAdb(adb, "-s", "127.0.0.1:15555", "push", f.getAbsolutePath(), "/sdcard/Download/os/" + f.getName());
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                    Thread.sleep(2500);
+                } catch (Exception ignored) { try { Thread.sleep(5000); } catch (Exception ignored2) {} }
+            }
+        }).start();
+    }
+    static java.util.Timer clipTimer;
+    static String lastClip = "";
+    static void startClipWatch() {
+        if (clipTimer != null) return;
+        clipTimer = new java.util.Timer(true);
+        clipTimer.schedule(new java.util.TimerTask() {
+            public void run() {
+                try {
+                    java.awt.datatransfer.Clipboard cb = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
+                    String t = (String) cb.getData(java.awt.datatransfer.DataFlavor.stringFlavor);
+                    if (t != null && !t.isEmpty() && !t.equals(lastClip)) {
+                        lastClip = t;
+                        try (java.io.FileWriter fw = new java.io.FileWriter(new File(sharedDir, "clipboard.txt"))) {
+                            fw.write(t);
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        }, 1500, 1500);
     }
 
     /* ===== 桌面 ===== */

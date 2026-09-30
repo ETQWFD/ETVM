@@ -4,7 +4,9 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
+import android.content.ClipboardManager;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -22,9 +24,11 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Vibrator;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Base64;
 import android.util.TypedValue;
@@ -80,7 +84,7 @@ public class MainActivity extends Activity {
 
     /* 签名防注入：本应用真实签名哈希（构建后回填，见 build.sh 两遍打包） */
     static final String EXPECTED_SIG = "4a7eee440f0a87274aff7ddbf690d9c8f5422826e71b0234a18727c0950d6a6b";
-    static final String APP_VER = "3.2.0";
+    static final String APP_VER = "3.3.0";
     static final String REPO = "ETQWFD/ETVM";
 
     /* 配色（随主题切换，非 final） */
@@ -150,7 +154,7 @@ public class MainActivity extends Activity {
             {"stApps", "系统自带应用", "Built-in Apps", "内蔵アプリ"},
             {"stImport", "从真机导出应用", "Import from Device", "端末からインポート"},
             {"stImportHint", "导出真机软件后会自动检测位数兼容性，仅支持当前虚拟机位数的应用才会被安装。", "Apps are ABI-checked automatically; only compatible ones install.", "ABI互換性を自動判定し、互換アプリのみインストールされます。"},
-            {"filesTitle", "连接储存", "Shared Storage", "共有ストレージ"},
+            {"filesTitle", "ET文件传输", "ET File Transfer", "ETファイル転送"},
             {"filesV", "虚拟机存储", "VM Storage", "VMストレージ"},
             {"filesS", "真机共享", "Device Shared", "端末共有"},
             {"romTitle", "ROM 商店", "ROM Store", "ROMストア"},
@@ -293,9 +297,85 @@ public class MainActivity extends Activity {
         seedBuiltIn();
         /* 内置镜像后台线程预解包（不占用主线程，启动飞快、不卡顿） */
         new Thread(() -> extractBundled()).start();
+        /* os 目录自动重建 + 剪贴板单向监听（真机 → 虚拟机） */
+        new Thread(() -> ensureOsDir()).start();
+        registerClipListener();
         /* 无欢迎动画，直接进入首页 */
         show(1);
         clockTick();
+    }
+
+    /* ===== os 目录（真机共享，删了自动重建）===== */
+    private File osDir() {
+        File d = new File(Environment.getExternalStorageDirectory(), "Download/os");
+        ensureOsDir();
+        return d;
+    }
+    private void ensureOsDir() {
+        try {
+            File d = new File(Environment.getExternalStorageDirectory(), "Download/os");
+            if (!d.exists()) d.mkdirs();
+            if (!d.exists() && Build.VERSION.SDK_INT >= 29) {
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.MediaColumns.DISPLAY_NAME, ".keep");
+                v.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/os/");
+                getContentResolver().insert(MediaStore.Downloads.getContentUri("external"), v);
+                d.mkdirs();
+            }
+        } catch (Exception ignored) {}
+    }
+    /* 写入 os 目录（Android 10+ 走 MediaStore，低版本直接路径） */
+    private void writeOs(String name, byte[] data) {
+        try {
+            File f = new File(osDir(), name);
+            try {
+                java.io.FileOutputStream fo = new java.io.FileOutputStream(f);
+                fo.write(data); fo.close();
+                return;
+            } catch (Exception ignored) {}
+            if (Build.VERSION.SDK_INT >= 29) {
+                /* 覆盖旧记录 */
+                try (android.database.Cursor c = getContentResolver().query(
+                        MediaStore.Downloads.getContentUri("external"),
+                        new String[]{MediaStore.MediaColumns._ID},
+                        MediaStore.MediaColumns.DISPLAY_NAME + "=? AND " + MediaStore.MediaColumns.RELATIVE_PATH + "=?",
+                        new String[]{name, "Download/os/"}, null)) {
+                    while (c != null && c.moveToNext()) {
+                        getContentResolver().delete(MediaStore.Downloads.getContentUri("external"),
+                                MediaStore.MediaColumns._ID + "=?", new String[]{c.getString(0)});
+                    }
+                    if (c != null) c.close();
+                } catch (Exception ignored) {}
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+                v.put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream");
+                v.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/os/");
+                v.put(MediaStore.MediaColumns.IS_PENDING, 1);
+                Uri u = getContentResolver().insert(MediaStore.Downloads.getContentUri("external"), v);
+                if (u != null) {
+                    try (java.io.OutputStream o = getContentResolver().openOutputStream(u)) {
+                        o.write(data);
+                    }
+                    v.clear(); v.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                    getContentResolver().update(u, v, null, null);
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+    /* 剪贴板单向监听：真机复制 → os/clipboard.txt（虚拟机可见） */
+    private void registerClipListener() {
+        try {
+            ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (cm == null) return;
+            cm.addPrimaryClipChangedListener(() -> {
+                try {
+                    if (!cm.hasPrimaryClip() || cm.getPrimaryClip() == null || cm.getPrimaryClip().getItemCount() == 0) return;
+                    String t = cm.getPrimaryClip().getItemAt(0).coerceToText(this).toString();
+                    if (t.isEmpty()) return;
+                    writeOs("clipboard.txt", t.getBytes("UTF-8"));
+                } catch (Exception ignored) {}
+            });
+        } catch (Exception ignored) {}
     }
 
     private View blockView(String msg) {
@@ -421,7 +501,7 @@ public class MainActivity extends Activity {
             vm.put("firstBoot", false); // 内置系统已安装好：直接进桌面
             JSONArray inst = new JSONArray();
             JSONObject st = new JSONObject();
-            st.put("label", "连接储存");
+            st.put("label", "ET文件传输");
             st.put("pkg", "com.et.storage");
             st.put("abi", "内置 · 真机共享");
             st.put("color", "tile-orange");
@@ -1541,7 +1621,7 @@ public class MainActivity extends Activity {
                             for (int j = 0; j < inst.length(); j++) if ("com.et.storage".equals(inst.getJSONObject(j).optString("pkg", ""))) has = true;
                             if (!has) {
                                 JSONObject st = new JSONObject();
-                                st.put("label", "连接储存"); st.put("pkg", "com.et.storage");
+                                st.put("label", "ET文件传输"); st.put("pkg", "com.et.storage");
                                 st.put("abi", "内置 · 真机共享"); st.put("color", "tile-orange");
                                 inst.put(st);
                                 curVm.put("installed", inst);
@@ -1617,12 +1697,12 @@ public class MainActivity extends Activity {
         LinearLayout dock = rowWrap();
         dock.setPadding(dp(6), dp(10), dp(6), dp(12));
         dock.setBackgroundColor(0xFF0D1528);
-        String[][] dks = {{"商", "应用中心", "store"}, {"夹", "连接储存", "files"}, {"球", "悬浮控制", "float"}, {"开", "开发者", "dev"}, {"电", "电源", "power"}};
+        String[][] dks = {{"商", "应用中心", "store"}, {"夹", "ET文件传输", "files"}, {"球", "悬浮控制", "float"}, {"开", "开发者", "dev"}, {"电", "电源", "power"}};
         for (String[] d : dks) {
             LinearLayout item = new LinearLayout(this);
             item.setOrientation(LinearLayout.VERTICAL);
             item.setGravity(Gravity.CENTER);
-            TextView t = tile(d[0], d[1].equals("应用中心") ? 0xFF00B8D4 : d[1].equals("连接储存") ? 0xFFFF9F43
+            TextView t = tile(d[0], d[1].equals("应用中心") ? 0xFF00B8D4 : d[1].equals("ET文件传输") ? 0xFFFF9F43
                     : d[1].equals("悬浮控制") ? 0xFF7C4DFF : d[1].equals("开发者") ? 0xFF00B894 : 0xFFE84118);
             item.addView(t);
             TextView l = text(d[1], 11, 0xFF9FB2D6, 0);
@@ -1648,7 +1728,7 @@ public class MainActivity extends Activity {
     private void renderVm() {
         if (vmAppGrid == null || curVm == null) return;
         vmAppGrid.removeAllViews();
-        String[][] sys = {{"系", "系统设置", "set"}, {"浏", "ET 浏览器", "browser"}, {"连", "连接储存", "files"}, {"相", "相机", "camera"}, {"册", "相册", "gallery"}};
+        String[][] sys = {{"系", "系统设置", "set"}, {"浏", "ET 浏览器", "browser"}, {"连", "ET文件传输", "files"}, {"相", "相机", "camera"}, {"册", "相册", "gallery"}};
         for (int i = 0; i < sys.length; i += 3) {
             LinearLayout row = rowWrap();
             for (int j = i; j < Math.min(sys.length, i + 3); j++) {
@@ -1757,7 +1837,7 @@ public class MainActivity extends Activity {
 
         p.addView(sectionTitle("系统自带应用"));
         LinearLayout builtin = rowWrap();
-        String[][] bapps = {{"浏", "ET 浏览器"}, {"夹", "连接储存"}, {"设", "系统设置"}, {"相", "相机"}, {"册", "相册"}};
+        String[][] bapps = {{"浏", "ET 浏览器"}, {"夹", "ET文件传输"}, {"设", "系统设置"}, {"相", "相机"}, {"册", "相册"}};
         int[] bcolors = {0xFF2F7BFF, 0xFFFF9F43, 0xFF00B894, 0xFFE84118, 0xFF7C4DFF};
         for (int bi = 0; bi < bapps.length; bi++) {
             String[] b = bapps[bi];
@@ -2238,13 +2318,38 @@ public class MainActivity extends Activity {
         LinearLayout tt = new LinearLayout(this);
         tt.setOrientation(LinearLayout.VERTICAL);
         tt.setPadding(dp(12), 0, 0, 0);
-        tt.addView(text("连接储存", 19, TXT, 1));
-        tt.addView(subText("单向连接 · 真机 → 虚拟机"));
+        tt.addView(text("ET文件传输", 19, TXT, 1));
+        tt.addView(subText("单向连接 · 真机 → 虚拟机 · os 目录自动重建"));
         top.addView(tt);
         Button send = btn("从真机发送", 0xFF182442, v -> pickFile("sendfile", String.valueOf(curVm.optLong("id", 0))));
         send.setTextSize(11);
         top.addView(send);
         p.addView(top);
+
+        /* 剪贴板单向面板 */
+        TextView clipT = sectionTitle("剪贴板 · 单向同步");
+        p.addView(clipT);
+        clipShow = new TextView(this);
+        clipShow.setTextSize(13);
+        clipShow.setTextColor(0xFF9FD7A8);
+        clipShow.setPadding(dp(2), dp(4), dp(2), dp(6));
+        p.addView(clipShow);
+        Button clipBtn = btn("把剪贴板同步进虚拟机", 0xFF182442, v -> {
+            try {
+                ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                String t = "";
+                if (cm != null && cm.hasPrimaryClip() && cm.getPrimaryClip() != null && cm.getPrimaryClip().getItemCount() > 0) {
+                    t = cm.getPrimaryClip().getItemAt(0).coerceToText(this).toString();
+                }
+                if (t.isEmpty()) { toast("剪贴板为空"); return; }
+                writeOs("clipboard.txt", t.getBytes("UTF-8"));
+                renderClip();
+                toast("已同步（虚拟机 os/clipboard.txt 可见）");
+            } catch (Exception ignored) {}
+        });
+        p.addView(clipBtn);
+        p.addView(subText("真机复制的内容会自动同步进虚拟机；虚拟机无法反向写入真机剪贴板（单向）。"));
+        renderClip();
 
         /* Tabs */
         LinearLayout tabs = rowWrap();
@@ -2255,7 +2360,7 @@ public class MainActivity extends Activity {
         tabs.addView(ts, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         p.addView(tabs);
 
-        TextView hint = subText("真机共享目录：" + sharedDir().getAbsolutePath() + "（把文件放进去，虚拟机即可查看/复制）");
+        TextView hint = subText("真机 os 目录：" + osDir().getAbsolutePath() + "（删了会自动重建；把文件放进去，虚拟机即可查看/复制）");
         p.addView(hint);
 
         filesList = new LinearLayout(this);
@@ -2282,9 +2387,23 @@ public class MainActivity extends Activity {
         return d;
     }
     private File sharedDir() {
-        File d = new File(getExternalFilesDir(null), "shared");
-        if (!d.exists()) d.mkdirs();
-        return d;
+        return osDir();
+    }
+
+    /* 剪贴板面板 */
+    private TextView clipShow;
+    private void renderClip() {
+        if (clipShow == null) return;
+        try {
+            File c = new File(osDir(), "clipboard.txt");
+            if (c.exists()) {
+                byte[] d = new byte[(int) Math.min(c.length(), 4096)];
+                try (java.io.FileInputStream i = new java.io.FileInputStream(c)) {
+                    int n = i.read(d);
+                    clipShow.setText(n > 0 ? new String(d, 0, n, "UTF-8") : "（空）");
+                }
+            } else clipShow.setText("（无 · 复制内容后自动同步进来）");
+        } catch (Exception e) { clipShow.setText("（读取失败）"); }
     }
 
     private void renderFiles() {
