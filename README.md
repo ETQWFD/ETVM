@@ -1,18 +1,18 @@
-# ET虚拟机 v3.2.0
+# ET虚拟机 v3.3.0
 
 **ET协会出品 · 版权所有 © ET**
 
 纯 Java 原生实现的安卓虚拟机。不再依赖网页 / WebView 内核，一切功能真实可用。
 
 - 包名：`com.et.vm`
-- 版本：3.2.0（versionCode 320）
+- 版本：3.3.0（versionCode 330）
 - 目标 SDK：34（Android 13 / 14 权限兼容）
 - 最小系统：Android 7.0（API 24）
 - 官网：https://ETQWFD.github.io/ETVM/
 
 ---
 
-## 一、新版本亮点（v3.2.0）
+## 一、新版本亮点（v3.3.0）
 
 | 项目 | 说明 |
 |---|---|
@@ -38,7 +38,7 @@
 
 ### 安卓版
 
-1. 从官网 / Release 下载 `ET虚拟机-v3.2.0.apk`。
+1. 从官网 / Release 下载 `ET虚拟机-v3.3.0.apk`。
 2. 安装时允许「安装未知来源应用」。
 3. 打开 App，欢迎页会展示设备检测与防注入状态。
 
@@ -117,7 +117,7 @@
 
 ```bash
 # 依赖：Android SDK build-tools 34、JDK 17、python3、launch4j
-bash build.sh          # 安卓 APK：ET虚拟机-v3.2.0.apk
+bash build.sh          # 安卓 APK：ET虚拟机-v3.3.0.apk
 javac -encoding UTF-8 -cp libs/json.jar -d pc-build src-pc/com/et/vm/ETVMPC.java src/com/et/vm/RomDetect.java src/com/et/vm/License.java
 jar cfm pc-dist/ETVM-pc.jar pc-manifest.mf -C pc-build .
 java -jar launch4j.jar pc-dist/l4j.xml   # 生成 ETVM.exe

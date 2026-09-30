@@ -104,7 +104,7 @@
 </head>
 <body>
 <nav><div class="wrap nav">
-  <div class="logo"><div class="chip">ET</div><span>ET虚拟机<b> v3.2.0</b></span></div>
+  <div class="logo"><div class="chip">ET</div><span>ET虚拟机<b> v3.3.0</b></span></div>
   <div class="links">
     <a href="#features">功能</a><a href="#os">内置系统</a><a href="#store">ROM 商店</a>
     <a href="#security">安全防注入</a><a href="#steps">使用步骤</a><a href="#versions">版本</a><a href="#faq">常见问题</a>
@@ -114,21 +114,21 @@
 <div class="hero">
   <div class="chip">ET</div>
   <h1>ET<b>虚拟机</b></h1>
-  <p class="tag">纯 Java 原生实现 · 安卓 APK + Windows 电脑版（EXE）· 打开即用 · 无欢迎动画 · 启动飞快</p>
+  <p class="tag">纯 Java 原生实现 · 电脑版内置 QEMU 真虚拟化引擎（光速虚拟机级）· 安卓 APK + Windows EXE · 打开即用 · 无欢迎动画</p>
   <div class="badges">
-    <span class="badge">内置安卓 4.4 + ET-OS 7.0 双系统（不可删除）</span>
+    <span class="badge">电脑版 QEMU 真启动 android-x86 系统</span>
+    <span class="badge">ET文件传输 · 单向导入 · os 目录自动重建</span>
+    <span class="badge">剪贴板单向同步进虚拟机</span>
+    <span class="badge">内置安卓 4.4 + ET-OS 7.0 双系统</span>
     <span class="badge">ROM 商店 · Android 4.4→16 全系 · 实时下载进度</span>
-    <span class="badge">连接储存 · 单向共享</span>
     <span class="badge">中/英/日三语言 · 5 套主题</span>
-    <span class="badge">检查更新 · 软件内下载安装</span>
     <span class="badge">签名防注入 · 授权码</span>
-    <span class="badge">悬浮窗控制 · 最高 120 帧</span>
   </div>
   <div class="btns">
-    <a class="btn btn-p" href="#download">↓ 下载 APK v3.2.0</a>
+    <a class="btn btn-p" href="#download">↓ 下载 APK v3.3.0</a>
     <a class="btn btn-g" href="https://github.com/ETQWFD/ETVM" target="_blank" rel="noopener">GitHub 源码仓库</a>
   </div>
-  <div class="ver">当前版本 <code>3.2.0</code> · 包名 <code>com.et.vm</code> · 目标 SDK 34（Android 13/14 权限兼容）</div>
+  <div class="ver">当前版本 <code>3.3.0</code> · 包名 <code>com.et.vm</code> · 目标 SDK 34（Android 13/14 权限兼容）</div>
 </div>
 
 <section id="features"><div class="wrap">
@@ -139,7 +139,11 @@
     <div class="card"><div class="ic">🛒</div><h3>ROM 商店 · 全系目录</h3><p><b>Android 4.4 → 16 全系</b>，32/64 位分别标注：4.4/5.1/6.0（32 位）与 7.1/8.1/9.0（64 位）官方镜像直链，10~16 镜像整理中。原生读取目录，刷新列表不再失败。</p></div>
     <div class="card"><div class="ic">📊</div><h3>实时下载进度</h3><p>下载 ROM 全程可见：<b>进度条 + 百分比 + 已下载/总大小 + 实时速度</b>，每 ~0.7 秒刷新，不再黑盒等待、不怕断线误判。</p></div>
     <div class="card"><div class="ic">🔍</div><h3>实时位数检测</h3><p>上传 ROM / 导入真机 APK 时，纯 Java 引擎流式解析 PE/ISO/ZIP 结构，检测 32 位 / 64 位并实时判定匹配度。</p></div>
-    <div class="card"><div class="ic">🔗</div><h3>连接储存</h3><p>虚拟机 ↔ 真机单向共享文件夹。真机可发送文件进共享目录，虚拟机内可查看、复制到虚拟机存储。</p></div>
+    <div class="card"><div class="ic">💻</div><h3>Windows 电脑版 · QEMU 真虚拟化</h3><p>内置 <b>QEMU 虚拟化引擎</b>：商店下载的真实 android-x86 镜像由 QEMU <b>真正启动</b>，进入真实安卓系统（不再是模拟界面）。首次启动按安装向导装系统，装完即用；ETVM.exe 便携版内置 Java 运行环境。</p></div>
+    <div class="card"><div class="ic">📦</div><h3>内置双系统</h3><p>打包内置 32 位 <b>Android 4.4 KitKat</b> 与 <b>ET-OS 7.0</b> 精简系统（各 ≤6MB，随包内置且不可删除）。创建虚拟机时【系统来源】直接选用，创建即用、直接进桌面。</p></div>
+    <div class="card"><div class="ic">📤</div><h3>ET文件传输 · 单向导入</h3><p>独立 APK（com.et.storage）：自动创建<b> os 目录</b>（手机 Download/os，删除自动重建）；手机/电脑 → 虚拟机单向传文件，虚拟机无法反向删除真机文件；粘贴板一键同步进虚拟机。</p></div>
+    <div class="card"><div class="ic">✂️</div><h3>剪贴板单向同步</h3><p>真机/电脑复制的文本自动写入 os/clipboard.txt 并同步进虚拟机；虚拟机侧只能查看，无法反向写回（单向可控）。</p></div>
+    <div class="card"><div class="ic">🔗</div><h3>连接储存</h3><p>虚拟机 ↔ 真机单向共享文件夹。真机可发送文件进 os 目录，虚拟机内可查看、复制到虚拟机存储。</p></div>
     <div class="card"><div class="ic">🎛️</div><h3>悬浮窗控制</h3><p>桌面右下角悬浮控制球，可拖动；面板提供 主页/返回/菜单/音量 按键，可自由开启与关闭。</p></div>
     <div class="card"><div class="ic">⚡</div><h3>帧率与开机动画</h3><p>刷新频率最高 120 帧（默认 60），支持自定义开机动画（选择任意图片），可设置虚拟机版本号等参数。</p></div>
     <div class="card"><div class="ic">🧩</div><h3>可选增强组件</h3><p>创建虚拟机时可勾选：安装 Google 三件套 / Xposed 框架 / Root 工具，按需启用。</p></div>
@@ -203,8 +207,8 @@
     <h3 style="font-size:16px;">1 · 运行时签名校验</h3>
     <p style="color:var(--sub);font-size:13.5px;margin-top:6px;">App 启动时读取自身 APK 签名（SHA-256）并与内置白名单比对，不一致即判定为被重打包/注入，进入受限模式并提示。</p>
     <div class="fp">安卓 APK 签名 SHA-256：4a7eee440f0a87274aff7ddbf690d9c8f5422826e71b0234a18727c0950d6a6b</div>
-    <div class="fp">Windows EXE SHA-256：ced1617dc93e7bf5dc8042dafdeda2b167d39d8c518220254af990e686bf440d</div>
-    <div class="fp">Windows 便携包 SHA-256：94d856d6347882739945a440c9f25e56df0e792985c25484c6a305378926ce34</div>
+    <div class="fp">Windows EXE SHA-256：31138acc61aba0b676125f47260e27c7e77b6915072d50fc8eb459a4c107e10c</div>
+    <div class="fp">Windows 便携包 SHA-256：9b63953f871f2276e31af512534d1100ceba7c9318a31d7cfae1f613be86c744</div>
     <div class="kv">
       <div><b>签名证书</b><span>CN=ET, OU=ET协会, O=ET, L=Meizhou, ST=Guangdong, C=CN</span></div>
       <div><b>密钥库</b><span>RSA-2048 · 有效期 10000 天 · 仅随交付物提供</span></div>
@@ -229,7 +233,8 @@
   <div class="st"><i></i><div><h2>版本历史</h2><p>v3.0.0 为原生重写大版本</p></div></div>
   <table>
     <tr><th>版本</th><th>说明</th><th>状态</th></tr>
-    <tr><td>v3.2.0</td><td><b>ROM 商店重构</b>：下载实时进度（百分比/速度/进度条）；Android 4.4→16 全系目录（32/64 位标注）；<b>新增内置 Android 4.4</b>（与 ET-OS 7.0 双内置，创建虚拟机直接选用、创建即用）；修复商店界面混乱；双端同步</td><td class="t">✓ 当前</td></tr>
+    <tr><td>v3.3.0</td><td><b>电脑版 QEMU 真虚拟化引擎</b>（下载的真实 android-x86 镜像由 QEMU 真正启动、自动 adb 安装传输软件）；<b>ET文件传输独立 APK</b>（os 目录自动重建 + 剪贴板单向同步）；电脑 shared 新文件自动推送虚拟机；手机版剪贴板单向监听</td><td class="t">✓ 当前</td></tr>
+    <tr><td>v3.2.0</td><td><b>ROM 商店重构</b>：下载实时进度（百分比/速度/进度条）；Android 4.4→16 全系目录（32/64 位标注）；<b>新增内置 Android 4.4</b>（与 ET-OS 7.0 双内置，创建虚拟机直接选用、创建即用）；修复商店界面混乱；双端同步</td><td>已并入 v3.3</td></tr>
     <tr><td>v3.1.0</td><td>修复进入首页卡死/闪退（界面缓存秒开 + 崩溃兜底 + 内置镜像后台解包）；中/英/日三语言；5 套主题；检查更新（软件内下载安装）；内置 ET-OS 7.0 不可删除；<b>新增 Windows 电脑版（ETVM.exe）</b></td><td>已并入 v3.2</td></tr>
     <tr><td>v3.0.0</td><td>纯 Java 原生重写（无 WebView）；内置 ET-OS 7.0 32 位；签名防注入；授权码；ROM 商店原生刷新；连接储存；悬浮窗控制</td><td>已并入 v3.1</td></tr>
     <tr><td>v2.1.0</td><td>ROM 商店列表刷新修复（原生读取 assets）</td><td>已并入 v3</td></tr>
@@ -243,15 +248,15 @@
   <div class="grid" style="grid-template-columns:1fr 1fr;max-width:860px;margin:0 auto;">
     <div class="card" style="text-align:center;">
       <div class="ic" style="margin:0 auto 12px;">📱</div>
-      <h3>安卓版 v3.2.0（APK）</h3>
+      <h3>安卓版 v3.3.0（APK）</h3>
       <p>com.et.vm · Android 7.0+<br>内置安卓4.4+ET-OS 7.0 · 商店全系目录 · 实时下载进度</p>
-      <a class="btn btn-p" style="margin-top:16px;" href="https://github.com/ETQWFD/ETVM/releases/download/v3.2.0/ET.-v3.2.0.apk" target="_blank" rel="noopener">↓ 下载 APK</a>
+      <a class="btn btn-p" style="margin-top:16px;" href="https://github.com/ETQWFD/ETVM/releases/download/v3.3.0/ET.-v3.3.0.apk" target="_blank" rel="noopener">↓ 下载 APK</a>
     </div>
     <div class="card" style="text-align:center;">
       <div class="ic" style="margin:0 auto 12px;">💻</div>
-      <h3>Windows 电脑版 v3.2.0</h3>
+      <h3>Windows 电脑版 v3.3.0</h3>
       <p>ETVM.exe 便携版 · 内置 Java 运行环境<br>Windows 10/11 x64 · 约 42MB</p>
-      <a class="btn btn-p" style="margin-top:16px;" href="https://github.com/ETQWFD/ETVM/releases/download/v3.2.0/ETVM-Windows-x64.zip" target="_blank" rel="noopener">↓ 下载 Windows 版</a>
+      <a class="btn btn-p" style="margin-top:16px;" href="https://github.com/ETQWFD/ETVM/releases/download/v3.3.0/ETVM-Windows-x64.zip" target="_blank" rel="noopener">↓ 下载 Windows 版</a>
     </div>
   </div>
   <p style="color:var(--sub);font-size:13px;margin-top:16px;text-align:center;">微信内直接点击即可下载（GitHub Pages HTTPS）。</p>
@@ -260,7 +265,9 @@
 <section id="faq"><div class="wrap">
   <div class="st"><i></i><div><h2>常见问题</h2></div></div>
   <details><summary>微信打开官网显示“无法访问”？</summary><p>官网部署在 GitHub Pages，提供 HTTPS（*.github.io），微信内置浏览器通常可直接打开。若出现提示，请复制链接到系统浏览器打开一次，或点击右上角“在浏览器打开”。本页所有资源均为 https 直链，无被微信拦截的域名。</p></details>
-  <details><summary>为什么不用网页 / WebView 实现？</summary><p>v3.0.0 起虚拟机界面全部改为 Java 原生实现，不依赖网页内核。原生界面更流畅、权限申请更可靠、文件系统访问不受 WebView 限制，ROM 商店刷新等历史问题一并根治。</p></details>
+  <details><summary>电脑版为什么能真正启动 ROM 系统？</summary><p>v3.3.0 起电脑版内置 <b>QEMU 虚拟化引擎</b>（qemu-system-x86_64）。在 ROM 商店下载真实 android-x86 镜像（4.4/5.1/6.0/7.1/8.1/9.0）并创建虚拟机后，启动即由 QEMU 直接加载镜像，进入<b>真实安卓系统</b>，首次启动按安装向导完成安装。内置的安卓4.4/ET-OS 7.0 为随包精简系统（模拟模式，创建即用）。</p></details>
+  <details><summary>手机版能真正启动外部 ROM 系统吗？</summary><p>普通 APK 在无 root 手机上无法加载并运行另一个完整安卓系统镜像（光速虚拟机手机版本质也是容器方案、需要系统级支持）。手机版提供随包内置的安卓4.4/ET-OS 7.0 精简系统（真实解包安装、创建即用），并把 ROM 商店的真实镜像用于电脑版 QEMU 真虚拟化。</p></details>
+  <details><summary>ET文件传输怎么用？</summary><p>虚拟机装好后桌面自动出现「ET文件传输」。打开后：① os 目录（手机 Download/os 或电脑 shared 文件夹）自动创建、删除自动重建；② 从手机导入文件 → os 目录 → 复制进虚拟机；③ 剪贴板区点按钮把真机剪贴板内容同步进虚拟机。全程单向，虚拟机无法反向修改真机。</p></details>
   <details><summary>ROM 商店下载怎么没有进度？</summary><p>v3.2.0 已重构：下载全程显示实时进度（进度条 + 百分比 + 已下载/总大小 + 速度，约 0.7 秒刷新），下载失败也会明确提示 HTTP 状态码，不再黑盒等待。电脑版同步支持。</p></details>
   <details><summary>商店里怎么没有 Android 10~16？</summary><p>官方 android-x86 项目只到 Android 9.0；Android 10+ 为社区 x86_64 发行版（体积 >1GB，超出精简镜像约束）。商店已为 10~16 全部建卡并标注“镜像整理中”，4~9 官方镜像与两款内置系统可直接使用。</p></details>
   <details><summary>内置安卓4.4怎么用？</summary><p>创建虚拟机时在【系统来源】选择“内置安卓4.4”（或“内置安卓7.0”），无需上传、无需下载、无需等待安装，创建完成后直接启动进入系统，且该虚拟机不可删除。</p></details>
